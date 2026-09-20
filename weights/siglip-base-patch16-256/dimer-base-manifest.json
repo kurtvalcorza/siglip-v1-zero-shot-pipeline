@@ -1,0 +1,50 @@
+{
+  "format": "dimer_hf_snapshot",
+  "formatVersion": 1,
+  "modelKey": "siglip-base-patch16-256",
+  "modelId": "google/siglip-base-patch16-256",
+  "revision": "b078df89e446d623010d890864d4207fe6399f61",
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 4116,
+      "sha256": "b105a3cfa97df9f082c42817c3caf61bfd7d360386fed4bdebc0c7fff0acba01"
+    },
+    {
+      "path": "config.json",
+      "bytes": 322,
+      "sha256": "acc261689fe8d29cf8ceacd5dc5d05fd53d2a43f3f6c57e6c16112a14a618dfa"
+    },
+    {
+      "path": "model.safetensors",
+      "bytes": 812856640,
+      "sha256": "f0cee7c815135c44a515eff72ab3040499744920442bc25567cd04efc93f8f65"
+    },
+    {
+      "path": "preprocessor_config.json",
+      "bytes": 368,
+      "sha256": "e12b577bd0da1f9bf6a0b8d3d78c8f9b55b9d99dec25556954e19cfc7b8ecf28"
+    },
+    {
+      "path": "special_tokens_map.json",
+      "bytes": 409,
+      "sha256": "2b6a1ff67a27e0df9ac0c7d93250fc0d87431c7b366b3d5669217104f9088a26"
+    },
+    {
+      "path": "spiece.model",
+      "bytes": 798330,
+      "sha256": "1e5036bed065526c3c212dfbe288752391797c4bb1a284aa18c9a0b23fcaf8ec"
+    },
+    {
+      "path": "tokenizer.json",
+      "bytes": 2399357,
+      "sha256": "c6e405cb7c670d56636a9402c81023a55bc6c3c53d89cf02b92f5c5005bfe920"
+    },
+    {
+      "path": "tokenizer_config.json",
+      "bytes": 711,
+      "sha256": "d6423dae508cc3a129d22ea443841c111832a1a73125b8f25ea8736951698bcb"
+    }
+  ],
+  "totalBytes": 816060253
+}

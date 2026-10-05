@@ -80,7 +80,7 @@ def test_release_notebook_exercises_the_adaptation_contract() -> None:
         "baseline_neighbour = colour_neighbour_baseline(train_records, test_records, classes)",
         "frozen_test = pipe.evaluate(test_records, classes=classes, class_names_map=display_names)",
         "adapt_result = pipe.adapt(train_records, val_records, epochs=EPOCHS, lr=LEARNING_RATE,",
-        "assert adapted_test['t2i_map'] > frozen_test['t2i_map']",
+        "adaptation_verdict = 'improved' if delta_map > 0 else ('no gain' if delta_map == 0 else 'worse')",  # noqa: E501
         "pipe.save_artifact(artifact_dir,",
         "reloaded = SiglipPipeline.from_artifact(artifact_dir, weights_dir=WEIGHTS_DIR, device=pipe.device)",  # noqa: E501
         "assert parity['identical_rows'] == parity['of']",

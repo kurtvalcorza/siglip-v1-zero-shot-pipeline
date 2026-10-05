@@ -129,6 +129,24 @@ def _trainable_names(model: Any, trainable_vision_layers: int) -> list[str]:
     return [name for name, _p in model.named_parameters() if name.startswith(prefixes)]
 
 
+def _remember_base(base: dict[str, Any], model: Any, names: Sequence[str]) -> None:
+    """Keep a copy of each named tensor's pinned-base value the first time it is about to change."""
+    state = model.state_dict()
+    for name in names:
+        if name not in base:
+            base[name] = state[name].detach().clone()
+
+
+def _restore_base(base: Mapping[str, Any], model: Any) -> list[str]:
+    """Put every tensor that adaptation or an artifact overlay changed back to its pinned-base value."""
+    if not base:
+        return []
+    state = dict(model.state_dict())
+    state.update(base)
+    model.load_state_dict(state, strict=True)
+    return sorted(base)
+
+
 def _check_artifact_manifest(root: Path, manifest: Mapping[str, Any]) -> Path:
     """Refuse an artifact whose manifest is not exactly the one this package writes: the supported format
     and version, the pinned base (id, revision, weight file, digest), exactly one file entry named
@@ -196,6 +214,9 @@ class SiglipPipeline:
         self.weight_sha256 = weight_sha256
         self.weight_size_bytes = weight_size_bytes
         self.adapter: dict[str, Any] | None = None
+        # Pinned-base values of every tensor adapt() or load_artifact() has changed: each adaptation starts
+        # from the verified base, never from a previous run's weights (review finding SIG-M2).
+        self._base_state: dict[str, Any] = {}
         if hasattr(self.model, "parameters"):  # injected fakes in the offline tests carry none
             for param in self.model.parameters():
                 param.requires_grad_(False)
@@ -399,7 +420,10 @@ class SiglipPipeline:
             every other class). AdamW at a fixed learning rate with gradient clipping at 1.0, seeded shuffling, no
             scheduler. Epoch 0 records the frozen model's validation metrics; the epoch with the highest
             validation text-to-image mAP is kept (smoother than accuracy on a small validation split).
-        Transactional: any failure restores the base tensors."""
+            Every call starts from the pinned base: tensors an earlier adapt() or load_artifact() changed are
+            restored first, so epoch 0 is the frozen model whatever ran before (re-running with other settings
+            is a fresh experiment, not continued training).
+        Transactional: any failure puts the weights back as they were before the call."""
         import torch
         from torch.nn.functional import logsigmoid, normalize
 
@@ -429,6 +453,10 @@ class SiglipPipeline:
                 f"validation records carry labels outside the training classes: {unknown[:5]}"
             )
         model, processor = self.model, self.processor
+        current = model.state_dict()
+        previous_state = {k: current[k].detach().clone() for k in self._base_state}
+        restored = self.restore_base()
+        _remember_base(self._base_state, model, names)
         torch.manual_seed(seed)
         started = time.perf_counter()
         wanted = set(names)
@@ -518,6 +546,7 @@ class SiglipPipeline:
         except BaseException:
             restore = dict(model.state_dict())
             restore.update(initial_state)
+            restore.update(previous_state)  # a failed call leaves the weights as they were before it
             model.load_state_dict(restore, strict=True)
             model.eval()
             for param in model.parameters():
@@ -547,10 +576,22 @@ class SiglipPipeline:
             "n_train": len(train_checked),
             "n_val": len(val_checked),
             "seed": seed,
+            "started_from": "pinned base"
+            + (f" (restored {len(restored)} tensors changed by an earlier run)" if restored else ""),
             "history": history,
             "seconds": round(time.perf_counter() - started, 2),
         }
         return dict(self.adapter)
+
+    def restore_base(self) -> list[str]:
+        """Return the model to the pinned base: undo every earlier adapt() or load_artifact() overlay.
+
+        Returns the names of the restored tensors (empty when the model was never changed)."""
+        restored = _restore_base(self._base_state, self.model)
+        if restored:
+            self.model.eval()
+        self.adapter = None
+        return restored
 
     def save_artifact(
         self, output_dir: str | Path, metadata: Mapping[str, Any] | None = None
@@ -633,6 +674,9 @@ class SiglipPipeline:
                 raise ValueError(
                     f"artifact tensor {key} has shape {tuple(value.shape)}, base has {tuple(state[key].shape)}"
                 )
+        self.restore_base()
+        _remember_base(self._base_state, self.model, sorted(tensors))
+        state = self.model.state_dict()
         merged = dict(state)
         merged.update({k: v.to(state[k].dtype) for k, v in tensors.items()})
         self.model.load_state_dict(merged, strict=True)

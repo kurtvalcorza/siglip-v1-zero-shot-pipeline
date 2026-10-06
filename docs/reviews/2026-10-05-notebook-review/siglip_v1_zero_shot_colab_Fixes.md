@@ -26,7 +26,12 @@ outcomes are printed and recorded as verdicts instead of asserted.
 While tracing SIG-M2, `adapt` was found to select the kept epoch on **validation accuracy** (`best_score`/`current`
 read `entry["val"]["accuracy"]`), whereas its docstring, the notebook prose, `docs/release-verification.md` and the
 adapter's `selection` string say **validation text-to-image mAP**. Changing the selector would change the default
-path's results, so it is left for the maintainer; the new guided text avoids naming the selector metric.
+path's results, so it was left for the maintainer. **Maintainer decision (2026-10-06): keep selection on validation
+accuracy.** The code is unchanged; the docstring, the adapter's `selection` string (now `highest validation accuracy`),
+the notebook prose (Sections 7 and the closing summary), `README.md`, `tutorials/README.md`, `MODEL_CARD.md` and
+`docs/release-verification.md` now name validation accuracy as the selector, with validation mAP reported beside it.
+The recorded runs' `best_epoch` (4) was chosen by this same accuracy rule, so no recorded number changes; only a
+re-run's printed `selection` string differs from the 2026-09-20 records.
 
 The review's BYOD minimum (P4b: 12 photographs) counted only `split_dataset`. The notebook also validated every split
 with the eight-record floor, which would have refused a 12-photograph set at the test split; the per-split floor is

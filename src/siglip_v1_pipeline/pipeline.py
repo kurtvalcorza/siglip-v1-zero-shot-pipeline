@@ -419,7 +419,8 @@ class SiglipPipeline:
             sigmoid-scaled logits and trained with SigLIP's pairwise sigmoid loss (+1 for the gold class, -1 for
             every other class). AdamW at a fixed learning rate with gradient clipping at 1.0, seeded shuffling, no
             scheduler. Epoch 0 records the frozen model's validation metrics; the epoch with the highest
-            validation text-to-image mAP is kept (smoother than accuracy on a small validation split).
+            validation accuracy is kept (the first such epoch on a tie; text-to-image mAP is reported
+            beside it but does not select).
             Every call starts from the pinned base: tensors an earlier adapt() or load_artifact() changed are
             restored first, so epoch 0 is the frozen model whatever ran before (re-running with other settings
             is a fresh experiment, not continued training).
@@ -568,7 +569,7 @@ class SiglipPipeline:
             "prompt_template": prompt_template,
             "epochs": epochs,
             "best_epoch": best_epoch,
-            "selection": "highest validation text-to-image mAP"
+            "selection": "highest validation accuracy"
             if val_checked
             else "final epoch (no validation split)",
             "lr": lr,

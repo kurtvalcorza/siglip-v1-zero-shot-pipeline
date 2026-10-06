@@ -111,7 +111,7 @@ Before changing the registry status from `Candidate` to `Release-grade`:
      CPU build record; scientific-name prompts: accuracy ≈ 0.54) with the per-species breakdown, and the
      cell's assertion that the frozen model is above both baselines;
    - Section 7: `pipe.adapt` printing epoch 0 as the frozen model, 21,264,384 trainable of 203,202,050 parameters,
-     and a six-epoch history with the validation mAP selecting the epoch (`best_epoch` 4 in the build record);
+     and a six-epoch history with validation accuracy selecting the epoch (`best_epoch` 4 in the build record);
    - Section 8: `pipe.evaluate` on the validation and test splits with the four-way comparison on the three
      metrics, the scientific-name prompts, the per-species breakdown and `outputs/…_evaluation_report.json` written
      (the cell asserts the adapted test mAP exceeds the frozen one — 0.891 versus 0.718 in the build record, with

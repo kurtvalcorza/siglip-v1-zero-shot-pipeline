@@ -142,9 +142,13 @@ def _restore_base(base: Mapping[str, Any], model: Any) -> list[str]:
     if not base:
         return []
     state = dict(model.state_dict())
-    state.update(base)
-    model.load_state_dict(state, strict=True)
-    return sorted(base)
+    # Only tensors whose live value differs from the base count as restored, so an adapt() on an unchanged model
+    # reports "pinned base" without claiming an earlier run changed anything.
+    restored = sorted(n for n, value in base.items() if not bool((state[n] == value).all()))
+    if restored:
+        state.update(base)
+        model.load_state_dict(state, strict=True)
+    return restored
 
 
 def _check_artifact_manifest(root: Path, manifest: Mapping[str, Any]) -> Path:

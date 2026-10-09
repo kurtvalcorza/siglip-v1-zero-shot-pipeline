@@ -1,4 +1,4 @@
-"""Per-repository template for tools/build_notebook.py (NOTEBOOK_SPEC 2.0 §4 standalone carrier).
+"""Per-repository template for tools/build_notebook.py (NOTEBOOK_SPEC 2.2 §4 standalone carrier).
 
 Only the task-specific prose and stage cells live here. Runtime install, the embedded package (six
 modules, carried verbatim in dependency order), and the model pin/stage/verify cells are produced by
@@ -98,7 +98,7 @@ TEMPLATE = {
         "head with SigLIP's sigmoid loss and validation-accuracy epoch selection, scores the held-out photographs again per species, "
         "re-scores the drawn shapes with the adapted model, exports the adapter as safetensors with a manifest, and reloads that "
         "artifact into a fresh pipeline to verify embedding parity. The default path needs no repository clone, no DIMER worker "
-        "or service, no credential, no upload dialog and no configuration edit (NOTEBOOK_SPEC 2.0 §5). On CPU the whole path "
+        "or service, no credential, no upload dialog and no configuration edit (NOTEBOOK_SPEC 2.2 §5). On CPU the whole path "
         "took about three and a half minutes of model time on the build workstation's CPU after the downloads (expect longer on a 2-vCPU hosted runtime); a CUDA runtime is used automatically when present and finishes in "
         "a few minutes."
     ),
@@ -810,6 +810,6 @@ TEMPLATE = {
         "- Sigmoid Loss for Language Image Pre-Training (Zhai, Mustafa, Kolesnikov and Beyer, ICCV 2023): https://arxiv.org/abs/2303.15343\n"
         "- The SigLIP 2 successor row in this fleet, sharing the code shape: https://github.com/kurtvalcorza/siglip2-vision-language-pipeline\n"
         "- iNaturalist open data (CC0 photographs, each observer's own licence): https://www.inaturalist.org/pages/developers — bucket https://inaturalist-open-data.s3.amazonaws.com/\n"
-        "- DIMER Notebook Specification 2.0 and Model Card Specification 1.1 (fleet specs in the ml-worker repository)"
+        "- DIMER Notebook Specification 2.2 and Model Card Specification 1.1 (fleet specs in the ml-worker repository)"
     ),
 }

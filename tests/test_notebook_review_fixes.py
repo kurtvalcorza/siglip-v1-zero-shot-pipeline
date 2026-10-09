@@ -110,7 +110,10 @@ def test_sig_m1_section_1_is_idempotent_and_keeps_the_live_worker(notebook, tmp_
     lock_sha = re.search(r"^LOCK_SHA256 = '([0-9a-f]{64})'$", source, re.M).group(1)
     env = tmp_path / "env"
     (env / "bin").mkdir(parents=True)
-    (env / "bin" / "python").symlink_to(sys.executable)  # stand-in interpreter for the isolated environment
+    try:
+        (env / "bin" / "python").symlink_to(sys.executable)  # stand-in interpreter for the isolated environment
+    except OSError as exc:  # Windows without the symlink privilege (WinError 1314); the cell targets Linux runtimes
+        pytest.skip(f"cannot create a symlink here: {exc}")
     (env / ".dimer-lock-sha256").write_text(lock_sha + "\n", encoding="utf-8")
     monkeypatch.setenv("DIMER_ISOLATED_ENV", str(env))
     monkeypatch.delenv("DIMER_NOTEBOOK_CI_PREINSTALLED", raising=False)
@@ -239,6 +242,11 @@ def test_sig_m2_tiny_model_epoch_zero_is_the_frozen_base_after_an_earlier_run():
     assert second["started_from"].startswith("pinned base (restored")
     pipe.restore_base()
     assert all(torch.equal(base[k], v) for k, v in pipe.model.state_dict().items())
+    # restore_base reports only tensors that differ from the base: the model is back at the base, so a further
+    # restore (and an adapt that starts here) claims nothing (t5-base 93a578f: a fresh run said "restored 52 tensors").
+    assert pipe.restore_base() == []
+    third = pipe.adapt(train, None, epochs=1, lr=1e-3, batch_size=4, trainable_vision_layers=1)
+    assert third["started_from"] == "pinned base"
 
 
 # --- SIG-M3: quality outcomes are reported verdicts; export always runs -------------------------------------------
@@ -425,3 +433,14 @@ def test_sig_m1_cancelled_or_multiple_uploads_are_refused(notebook, tmp_path, mo
         monkeypatch.setitem(sys.modules, "google.colab.files", files)
         with pytest.raises(ValueError, match=message):
             exec(_section_4(notebook, True, ""), _section_4_namespace())
+
+
+def test_sig_m1_locks_carry_the_slow_tokenizer_backends():
+    """The pinned checkpoint names `SiglipTokenizer` (SentencePiece, no fast class in transformers 4.57), which needs
+    sentencepiece (`@requires`) and protobuf (`requires_backends` in `__init__`). The isolated environment sees only
+    the lock, so both must be in it; main's integration job failed on the missing sentencepiece since fc8b638."""
+    config = json.loads((ROOT / "weights" / "siglip-base-patch16-256" / "tokenizer_config.json").read_text(encoding="utf-8"))
+    assert config["tokenizer_class"] == "SiglipTokenizer"
+    for lock in (LOCK, ROOT / "requirements.lock.txt"):
+        pinned = {line.split("==")[0].lower() for line in lock.read_text(encoding="utf-8").splitlines() if "==" in line and not line.startswith(("#", " "))}
+        assert {"sentencepiece", "protobuf"} <= pinned, lock.name

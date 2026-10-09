@@ -1,0 +1,72 @@
+[colab] Parsing notebook '/home/kurt/colab-runs/siglip-v1-zero-shot-pipeline-ec6b1bc-b793c8/siglip_v1_zero_shot_colab_ec6b1bc_colab-cli-t4.ipynb'...
+[colab] Executing cell 1/16 - Infrastructure: build (or reuse) the isolated environment and route later cells to it...
+{'isolated_environment': '/content/dimer_isolated_env_6994198c2508', 'reused': False, 'isolated_python': '3.12.12', 'kernel_python': '3.13.15', 'locked_packages': 49, 'setup_seconds': 59}
+{'routed_to': '/content/dimer_isolated_env_6994198c2508/bin/python', 'worker_pid': 863, 'worker_reused': False}
+[colab] Executing cell 2/16 - Infrastructure: record the runtime...
+{'notebook_source': {'repository': 'siglip-v1-zero-shot-pipeline', 'repository_revision': '4ba6c99993426b99dbe05f97dccaf7cd6ca6c611', 'embedded_module': 'src/siglip_v1_pipeline/config.py', 'embedded_modules': ['src/siglip_v1_pipeline/config.py', 'src/siglip_v1_pipeline/metrics.py', 'src/siglip_v1_pipeline/model.py', 'src/siglip_v1_pipeline/provenance.py', 'src/siglip_v1_pipeline/samples.py', 'src/siglip_v1_pipeline/pipeline.py'], 'module_sha256': 'ee260bce9b26bf21e94d3940b0e4aec530a2a05282c4c39f0ec34c19ec5fbae2', 'generator': 'build_notebook.py/2.2', 'notebook_spec': '2.2'}, 'python': '3.12.12', 'executable': '/content/dimer_isolated_env_6994198c2508/bin/python', 'torch': '2.14.0+cu130', 'transformers': '4.57.6', 'numpy': '2.5.3', 'cuda': True}
+[colab] Executing cell 3/16 - siglip_v1_zero_shot-08...
+[colab] Executing cell 4/16 - siglip_v1_zero_shot-10...
+[colab] Executing cell 5/16 - siglip_v1_zero_shot-12...
+[colab] Executing cell 6/16 - siglip_v1_zero_shot-14...
+[colab] Executing cell 7/16 - siglip_v1_zero_shot-16...
+[colab] Executing cell 8/16 - siglip_v1_zero_shot-18...
+[colab] Executing cell 9/16 - Infrastructure: stage and digest-verify the pinned snapshot, then load the model...
+{'model_id': 'google/siglip-base-patch16-256', 'revision': 'b078df89e446d623010d890864d4207fe6399f61', 'license': 'Apache-2.0', 'files': 8, 'total_bytes': 816060253}
+{'weights_dir': '/content/weights/siglip-base-patch16-256', 'fetched': ['README.md', 'config.json', 'model.safetensors', 'preprocessor_config.json', 'special_tokens_map.json', 'spiece.model', 'tokenizer.json', 'tokenizer_config.json']}
+{'verified_files': 8, 'revision': 'b078df89e446d623010d890864d4207fe6399f61'}
+Using a slow image processor as `use_fast` is unset and a slow processor was saved with this model. `use_fast=True` will be the default behavior in v4.52, even if the model was saved with a slow processor. This will result in minor differences in outputs. You'll still be able to use a slow processor with `use_fast=False`.
+{'device': device(type='cuda'), 'source': 'local-snapshot'}
+[colab] Executing cell 10/16 - siglip_v1_zero_shot-22...
+{'data_source': "iNaturalist CC0 bird photographs (six species): iNaturalist open-data bucket, research-grade CC0 photos selected 2026-09-19 (60 per species) (CC0 1.0 (each photo's own license_code on iNaturalist; observers credited in the records))", 'raw_rows': {'photographs': 360, 'bytes': 39223447, 'observers': 222}, 'splits': {'train': 216, 'validation': 48, 'test': 96}, 'observer_overlap': {'observers': 222, 'in_more_than_one_split': 53}, 'classes': ['american_goldfinch', 'chipping_sparrow', 'dark_eyed_junco', 'house_finch', 'song_sparrow', 'white_throated_sparrow']}
+{'train': {'n': 216, 'label_counts': {'american_goldfinch': 36, 'chipping_sparrow': 36, 'dark_eyed_junco': 36, 'house_finch': 36, 'song_sparrow': 36, 'white_throated_sparrow': 36}, 'image_side': {'min': 342, 'max': 500}, 'digest': 'fa4ce9eb2a674c17...'}}
+{'validation': {'n': 48, 'label_counts': {'american_goldfinch': 8, 'chipping_sparrow': 8, 'dark_eyed_junco': 8, 'house_finch': 8, 'song_sparrow': 8, 'white_throated_sparrow': 8}, 'image_side': {'min': 357, 'max': 500}, 'digest': '481b39b7ed4d165e...'}}
+{'test': {'n': 96, 'label_counts': {'american_goldfinch': 16, 'chipping_sparrow': 16, 'dark_eyed_junco': 16, 'house_finch': 16, 'song_sparrow': 16, 'white_throated_sparrow': 16}, 'image_side': {'min': 408, 'max': 500}, 'digest': '923b58c6f32d7b4d...'}}
+{'example': {'id': 'train-000', 'label': 'house_finch', 'display_name': 'House Finch', 'size': [375, 500], 'observation': 'https://www.inaturalist.org/observations/12337763'}}
+{'probe': 'duplicate id', 'rejected': "duplicate id 'same'"}
+{'probe': 'image over the side ceiling', 'rejected': 'records[0]: image side outside 1..MAX_IMAGE_SIDE=4096 px: (4097, 8)'}
+{'probe': 'one label only', 'rejected': '1 distinct labels; 2..100 are required'}
+{'probe': 'too small', 'rejected': '3 records; 8..20000 are required'}
+[colab] Executing cell 11/16 - siglip_v1_zero_shot-25...
+{'ceilings': {'TEXT_MAX_LENGTH': 64, 'DEFAULT_PROMPT_TEMPLATE': 'This is a photo of {label}.', 'MAX_IMAGE_SIDE': 4096, 'MIN_RECORDS': 8, 'MAX_RECORDS': 20000, 'MIN_CLASSES': 2, 'image_contract': '256x256 RGB after processor resize', 'device': 'cuda'}}
+{'shapes': ['red_square.ppm', 'green_circle.ppm', 'blue_triangle.ppm'], 'sha256': {'red_square.ppm': 'b38ff0c9131677ed...', 'green_circle.ppm': '2e3e657686a0f6a6...', 'blue_triangle.ppm': 'f0f4c38c7af92b3a...'}, 'manifest_verdict': 'accepted', 'findings': 1}
+red_square.ppm -> [('red square', 0.0022), ('abstract geometric shape', 0.0002), ('green circle', 0.0), ('blue triangle', 0.0)]
+green_circle.ppm -> [('green circle', 0.6968), ('abstract geometric shape', 0.0036), ('red square', 0.0), ('blue triangle', 0.0)]
+blue_triangle.ppm -> [('blue triangle', 0.9873), ('abstract geometric shape', 0.0022), ('red square', 0.0), ('green circle', 0.0)]
+{'checks': {'one_ranking_per_image': True, 'scores_in_unit_interval': True, 'rankings_descending': True, 'embeddings_unit_norm': True}, 'seconds': 1.17, 'frozen_scene': {'top1_accuracy': 1.0, 'recall_at_1': 1.0}, 'verdict': 'sample-sanity'}
+[colab] Executing cell 12/16 - siglip_v1_zero_shot-28...
+{'majority_baseline': {'accuracy': 0.167, 'macro_f1': 0.048, 't2i_map': 0.203}, 'n': 96, 'note': "majority floor ('american_goldfinch' for every photograph)"}
+{'colour_neighbour_baseline': {'accuracy': 0.26, 'macro_f1': 0.261, 't2i_map': 0.212}, 'note': 'colour nearest neighbour (216 training photographs)'}
+{'frozen_model_test': {'accuracy': 0.76, 'macro_f1': 0.761, 't2i_map': 0.718}, 'n': 96, 'verdict': 'measured', 'prompt_template': 'This is a photo of {label}.', 'seconds': 2.2}
+{'definitions': {'accuracy': 'fraction of photographs whose highest-scoring class prompt is the gold label; in 0..1', 'macro_f1': 'unweighted mean over classes of the F1 of predicting that class; in 0..1', 't2i_map': "mean over class prompts of the average precision of ranking every photograph by the prompt's score (the class's own photographs are relevant); in 0..1"}}
+{'by_species_frozen': {'american_goldfinch': {'n': 16, 'recall': 0.94, 'ap': 0.91}, 'chipping_sparrow': {'n': 16, 'recall': 0.44, 'ap': 0.68}, 'dark_eyed_junco': {'n': 16, 'recall': 0.81, 'ap': 0.84}, 'house_finch': {'n': 16, 'recall': 0.81, 'ap': 0.83}, 'song_sparrow': {'n': 16, 'recall': 0.75, 'ap': 0.72}, 'white_throated_sparrow': {'n': 16, 'recall': 0.81, 'ap': 0.34}}}
+{'frozen_model_test_scientific_name_prompts': {'accuracy': 0.542, 'macro_f1': 0.53, 't2i_map': 0.536}}
+{'frozen_vs_baselines': 'above both baselines', 'checks': {'t2i_map_above_majority_floor': True, 'accuracy_above_colour_neighbour': True}}
+[colab] Executing cell 13/16 - siglip_v1_zero_shot-31...
+{'epoch': 0, 'train_loss': None, 'val_accuracy': 0.688, 'val_macro_f1': 0.696, 'val_t2i_map': 0.676, 'note': 'frozen model'}
+{'epoch': 1, 'train_loss': 1.7956, 'val_accuracy': 0.812, 'val_macro_f1': 0.814, 'val_t2i_map': 0.86}
+{'epoch': 2, 'train_loss': 0.8502, 'val_accuracy': 0.708, 'val_macro_f1': 0.71, 'val_t2i_map': 0.841}
+{'epoch': 3, 'train_loss': 0.3991, 'val_accuracy': 0.75, 'val_macro_f1': 0.754, 'val_t2i_map': 0.87}
+{'epoch': 4, 'train_loss': 0.162, 'val_accuracy': 0.854, 'val_macro_f1': 0.854, 'val_t2i_map': 0.9}
+{'epoch': 5, 'train_loss': 0.0261, 'val_accuracy': 0.854, 'val_macro_f1': 0.854, 'val_t2i_map': 0.895}
+{'epoch': 6, 'train_loss': 0.061, 'val_accuracy': 0.833, 'val_macro_f1': 0.834, 'val_t2i_map': 0.9}
+{'trainable_parameters': 21264384, 'total_parameters': 203202050, 'classes': ['american_goldfinch', 'chipping_sparrow', 'dark_eyed_junco', 'house_finch', 'song_sparrow', 'white_throated_sparrow'], 'best_epoch': 4, 'selection': 'highest validation accuracy', 'started_from': 'pinned base', 'seconds': 46.9}
+[colab] Executing cell 14/16 - siglip_v1_zero_shot-34...
+{'accuracy': {'majority': 0.167, 'neighbour': 0.26, 'frozen': 0.76, 'adapted': 0.844}}
+{'macro_f1': {'majority': 0.048, 'neighbour': 0.261, 'frozen': 0.761, 'adapted': 0.847}}
+{'t2i_map': {'majority': 0.203, 'neighbour': 0.212, 'frozen': 0.718, 'adapted': 0.891}}
+{'delta_vs_frozen': {'accuracy': 0.083, 'macro_f1': 0.086, 't2i_map': 0.172}}
+{'scientific_name_prompts': {'accuracy': {'frozen': 0.542, 'adapted': 0.562}, 'macro_f1': {'frozen': 0.53, 'adapted': 0.536}, 't2i_map': {'frozen': 0.536, 'adapted': 0.618}}}
+{'by_species': {'american_goldfinch': {'n': 16, 'frozen_recall': 0.94, 'adapted_recall': 0.94, 'frozen_ap': 0.91, 'adapted_ap': 0.99}, 'chipping_sparrow': {'n': 16, 'frozen_recall': 0.44, 'adapted_recall': 0.69, 'frozen_ap': 0.68, 'adapted_ap': 0.82}, 'dark_eyed_junco': {'n': 16, 'frozen_recall': 0.81, 'adapted_recall': 0.88, 'frozen_ap': 0.84, 'adapted_ap': 0.9}, 'house_finch': {'n': 16, 'frozen_recall': 0.81, 'adapted_recall': 0.88, 'frozen_ap': 0.83, 'adapted_ap': 0.97}, 'song_sparrow': {'n': 16, 'frozen_recall': 0.75, 'adapted_recall': 0.94, 'frozen_ap': 0.72, 'adapted_ap': 0.8}, 'white_throated_sparrow': {'n': 16, 'frozen_recall': 0.81, 'adapted_recall': 0.75, 'frozen_ap': 0.34, 'adapted_ap': 0.87}}}
+{'verdicts': {'frozen_vs_baselines': 'above both baselines', 'adapted_vs_frozen_t2i_map': 'improved'}}
+{'adaptation_verdict': 'improved', 'test_t2i_map_delta': 0.172, 'report': 'outputs/siglip_v1_zero_shot_evaluation_report.json'}
+[colab] Executing cell 15/16 - siglip_v1_zero_shot-37...
+{'image': 'red_square.ppm', 'frozen': [('red square', 0.002), ('abstract geometric shape', 0.0)], 'adapted': [('red square', 0.009), ('abstract geometric shape', 0.0)]}
+{'image': 'green_circle.ppm', 'frozen': [('green circle', 0.697), ('abstract geometric shape', 0.004)], 'adapted': [('green circle', 0.798), ('abstract geometric shape', 0.006)]}
+{'image': 'blue_triangle.ppm', 'frozen': [('blue triangle', 0.987), ('abstract geometric shape', 0.002)], 'adapted': [('blue triangle', 0.994), ('abstract geometric shape', 0.004)]}
+{'scene_after_adaptation': {'top1_accuracy': 1.0, 'recall_at_1': 1.0}, 'verdict': 'sample-sanity'}
+{'artifact': 'outputs/siglip_v1_zero_shot_adapter', 'format': 'org.valcorza.siglip-base-patch16-256.adapter.v1', 'tensors': 45, 'bytes': 85062712, 'sha256': '90199e9b38310c1e...'}
+{'reload_parity': {'max_abs_difference': 0.0, 'identical_rows': 8, 'of': 8}, 'reloaded_best_epoch': 4}
+['provenance.json', 'sample-data', 'siglip_v1_zero_shot_adapter', 'siglip_v1_zero_shot_evaluation_report.json', 'siglip_v1_zero_shot_input_manifest.json', 'siglip_v1_zero_shot_result.json', 'siglip_v1_zero_shot_shapes.json', 'siglip_v1_zero_shot_train.csv']
+[colab] Executing cell 16/16 - siglip_v1_zero_shot-40...
+{'experiment': 'skipped (RUN_EXPERIMENT = False); the default path above is complete'}
+[colab] Saving notebook with outputs to '/home/kurt/colab-runs/siglip-v1-zero-shot-pipeline-ec6b1bc-b793c8/siglip_v1_zero_shot_colab_ec6b1bc_colab-cli-t4_output.ipynb'...

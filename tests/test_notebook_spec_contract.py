@@ -35,8 +35,8 @@ def test_release_notebook_declares_e2e_profile() -> None:
     notebook = _load_notebook()
     dimer = notebook["metadata"]["dimer"]
     assert dimer["notebook_profile"] == "E2E"
-    assert dimer["notebook_spec"] == "2.0"
-    assert dimer["standalone"] is True  # NOTEBOOK_SPEC 2.0 §4; parity in test_notebook_parity.py
+    assert dimer["notebook_spec"] == "2.2"
+    assert dimer["standalone"] is True  # NOTEBOOK_SPEC 2.2 §4; parity in test_notebook_parity.py
 
     registry = REGISTRY.read_text(encoding="utf-8")
     assert "siglip_v1_zero_shot_colab.ipynb" in registry
@@ -80,7 +80,7 @@ def test_release_notebook_exercises_the_adaptation_contract() -> None:
         "baseline_neighbour = colour_neighbour_baseline(train_records, test_records, classes)",
         "frozen_test = pipe.evaluate(test_records, classes=classes, class_names_map=display_names)",
         "adapt_result = pipe.adapt(train_records, val_records, epochs=EPOCHS, lr=LEARNING_RATE,",
-        "assert adapted_test['t2i_map'] > frozen_test['t2i_map']",
+        "adaptation_verdict = 'improved' if delta_map > 0 else ('no gain' if delta_map == 0 else 'worse')",  # noqa: E501
         "pipe.save_artifact(artifact_dir,",
         "reloaded = SiglipPipeline.from_artifact(artifact_dir, weights_dir=WEIGHTS_DIR, device=pipe.device)",  # noqa: E501
         "assert parity['identical_rows'] == parity['of']",

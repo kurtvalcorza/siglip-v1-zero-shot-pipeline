@@ -1,4 +1,4 @@
-"""Per-repository template for tools/build_notebook.py (NOTEBOOK_SPEC 2.0 §4 standalone carrier).
+"""Per-repository template for tools/build_notebook.py (NOTEBOOK_SPEC 2.2 §4 standalone carrier).
 
 Only the task-specific prose and stage cells live here. Runtime install, the embedded package (six
 modules, carried verbatim in dependency order), and the model pin/stage/verify cells are produced by
@@ -20,6 +20,12 @@ text-to-image mAP over the held-out photographs is measured beside two non-neura
 fine-tuning of the vision tower's last blocks runs in the kernel with SigLIP's sigmoid loss, the held-out
 split is scored again per species, the adapted model re-scores the shapes, and the adapter is exported and
 reloaded.
+
+2026-10-05 review fix cycle (SIG-M1..M4, SIG-m1): generator /2.2 keys ``isolated_runtime`` (nothing is installed into
+the kernel; a hash-locked uv environment runs every later cell, so Run all needs no restart), ``infrastructure_labels``
+and ``guided`` (audience, how-to-use, roadmap, task contract; predictions, worked checkpoints, a change-one-thing
+experiment, troubleshooting, glossary and a conclusion template). Quality outcomes are reported as verdicts instead of
+asserted; ``SiglipPipeline.adapt`` restarts from the pinned base on every call; BYOD takes a path or one uploaded zip.
 """
 # ruff: noqa: E501  -- markdown prose and code-cell text are kept on single lines for readable rendering
 
@@ -30,6 +36,20 @@ TEMPLATE = {
     "notebook_name": "siglip_v1_zero_shot_colab.ipynb",
     "profile": "E2E",
     "mode": "GUIDED",
+    "isolated_runtime": True,
+    "infrastructure_labels": True,
+    # The fleet's uv isolated-environment mechanism (bioclip2-biodiversity-pipeline): managed CPython, a size- and
+    # SHA-256-verified uv wheel, and a lock compiled from the pyproject pins with
+    # `uv pip compile pyproject.toml --python-version 3.12 --python-platform x86_64-manylinux_2_28 --generate-hashes
+    # --only-binary :all: -o tutorials/requirements-colab.lock.txt`.
+    "managed_python": "3.12.12",
+    "uv": {
+        "version": "0.12.15",
+        "url": "https://files.pythonhosted.org/packages/1e/fd/432451d732917c49152a291de3ef171aa6b0f1a22d39780fb2c1f085ca4c/uv-0.12.15-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+        "bytes": 20081404,
+        "sha256": "aee9802f46bae436bd91751bb33ddeb379ef1596b5c19df193219d545d244b60",
+    },
+    "lock": "tutorials/requirements-colab.lock.txt",
     "pipeline_class": "SiglipPipeline",
     "weights_key": "siglip-base-patch16-256",
     "modules": ["config.py", "model.py", "metrics.py", "samples.py", "pipeline.py", "provenance.py"],
@@ -67,24 +87,29 @@ TEMPLATE = {
     ],
     "capability": "zero-shot image classification, image/text embeddings, cosine similarity, text-to-image retrieval and bounded supervised fine-tuning of the vision tower's last blocks on a labelled-photograph dataset, using the pinned `google/siglip-base-patch16-256` weights",
     "run_all": (
-        "Selecting **Run all** in a fresh supported runtime installs the pinned dependencies, stages and digest-verifies the "
+        "Selecting **Run all** in a fresh supported runtime builds an isolated environment from the hash-locked pins (nothing is "
+        "installed into the notebook's own Python, so no restart is needed and Run all completes in one pass), stages and digest-verifies the "
         "pinned `google/siglip-base-patch16-256` snapshot (an 813 MB `model.safetensors`; no pickle is opened anywhere), fetches "
         "the 360 pinned iNaturalist photographs from the project's open-data bucket (about 39 MB, each refused on any byte-size "
         "or SHA-256 mismatch), cuts them per species into 216 / 48 / 96 training, validation and test photographs, classifies "
         "three drawn shapes through the inference contract with an input manifest and a rejection probe, measures the frozen "
         "model's zero-shot accuracy, macro F1 and text-to-image mAP over the 96 test photographs beside the majority-floor and "
         "colour-nearest-neighbour baselines, runs a bounded fine-tuning of the vision tower's last two blocks and attention-pool "
-        "head with SigLIP's sigmoid loss and validation-mAP epoch selection, scores the held-out photographs again per species, "
+        "head with SigLIP's sigmoid loss and validation-accuracy epoch selection, scores the held-out photographs again per species, "
         "re-scores the drawn shapes with the adapted model, exports the adapter as safetensors with a manifest, and reloads that "
         "artifact into a fresh pipeline to verify embedding parity. The default path needs no repository clone, no DIMER worker "
-        "or service, no credential, no upload dialog and no configuration edit (NOTEBOOK_SPEC 2.0 §5). On CPU the whole path "
+        "or service, no credential, no upload dialog and no configuration edit (NOTEBOOK_SPEC 2.2 §5). On CPU the whole path "
         "took about three and a half minutes of model time on the build workstation's CPU after the downloads (expect longer on a 2-vCPU hosted runtime); a CUDA runtime is used automatically when present and finishes in "
         "a few minutes."
     ),
     "byod": (
-        "After the tutorial workflow completes, set `USE_BYOD = True` in Section 4 and re-run from that cell to upload one zip "
-        "holding a `labels.csv` (columns `id`, `file`, `label`) beside the image files — at least eight photographs over at "
-        "least two labels, the label text being what the prompt names. They pass through the same validation, seeded stratified "
+        "After the tutorial workflow completes, set `USE_BYOD = True` in Section 4 and either set `BYOD_PATH` to a zip or folder "
+        "in the runtime (Colab, Kaggle or Jupyter) or leave it empty to upload one zip in Colab, then choose **Run after** from "
+        "that cell. The zip or folder holds a `labels.csv` (columns `id`, `file`, `label`) beside the image files, the label text "
+        "being what the prompt names. After the split every label needs at least one training, validation and test photograph and "
+        "the training split eight, so the **effective minimum is 12 photographs for two labels** (6 per label), 15 for three, "
+        "and 4 per label from four labels upward; with so few, each label's held-out score rests on one or two photographs and "
+        "the cell says so. They pass through the same validation, seeded stratified "
         "split, baselines, fine-tuning, held-out evaluation, artifact export and reload-parity cells as the iNaturalist sample. "
         "The expected schema and the ceilings are stated in the Prerequisites and in Section 4, and uploaded files stay inside "
         "this runtime. BYOD is optional and never part of the default path."
@@ -109,6 +134,13 @@ TEMPLATE = {
         "**Snapshot note:** the pinned revision ships `model.safetensors` (an 8-file manifest) — no pickle is opened anywhere "
         "in this notebook. Section 3 stages and digest-verifies those files before the processor or the model is constructed."
     ),
+    "guided": {
+        "opening": [
+            (
+                "**Who this notebook is for.** A learner who knows basic Python, has used Colab or Jupyter and has met image classification, and wants to see how a vision-language model classifies photographs of classes it was never trained on, how to measure that honestly, and how to adapt it to a small labelled set without fooling themselves. No prior experience with SigLIP, CLIP or fine-tuning is assumed; each term is explained where it first matters and again in the **Glossary** at the end. A T4 GPU runtime finishes the fine-tuning in a few minutes; CPU works but is several times slower.\n\n**Input → Model → Output.**\n\n| | Zero-shot classification | Text-to-image retrieval | Bounded fine-tuning |\n|---|---|---|---|\n| Input | one photograph and candidate labels, each put into a prompt | a text query and a gallery of photographs | labelled photographs (216 training and 48 validation in the sample) |\n| Model | image tower and text tower; the cosine of the two embeddings × `logit_scale` + `logit_bias`, read through a sigmoid | the same two towers; cosine ranking | the last two vision-tower blocks, the post-layernorm and the attention-pool head, trained with the sigmoid loss; everything else frozen |\n| Output | one independent sigmoid score per label, ranked (never an abstention) | gallery photographs ranked by cosine | an 85 MB safetensors adapter, and held-out accuracy, macro F1 and text-to-image mAP |\n\n**How to use this notebook.** Choose a runtime (**Runtime → Change runtime type → T4 GPU** is faster; CPU works), then **Runtime → Run all**. Run all completes in one pass: Section 1 installs nothing into the notebook's own Python, so no restart is needed. Sections 1–3 are **infrastructure** — the isolated environment, the carried package and the model snapshot — and their cells are collapsed; you may run them without studying them. The learning path starts in Section 4. Form fields (`# @param`) are the only values meant to be edited, and the defaults reproduce the recorded run. Before each principal result the notebook asks you to **Predict**; after it come **What to notice** and a collapsible **Check your reasoning** with a worked answer from the recorded run (the Kaggle T4 run of 20 September 2026; a CPU run can differ in the last digit). Section 10 is a **change-one-thing experiment**, off by default. **Troubleshooting**, a **Glossary** and a **Conclusion** template are at the end. Writing your predictions down is optional.\n\n**Roadmap:** 1–3 infrastructure → 4 photographs, validation and a leakage-free split → 5 the inference contract on three drawn shapes → 6 two baselines and the frozen model *(evaluation practice)* → 7 bounded fine-tuning → 8 held-out evaluation, per species → 9 the shapes again, export and reload → 10 change one thing (optional) → conclude. Sections 5 and 7 carry the **core concepts** (sigmoid scores, the sigmoid loss, what is trained), Sections 4, 6 and 8 the **evaluation practice** (baselines, leakage, held-out reading) and Sections 1–3 and 9 the **engineering** (environment, provenance, export)."
+            )
+        ]
+    },
     "learning_objectives": (
         "install the pinned runtime; read what the carried package guarantees; stage and digest-verify the immutable "
         "upstream snapshot; fetch a digest-pinned labelled photograph set, validate it and split it per species without "
@@ -127,9 +159,10 @@ TEMPLATE = {
         "these."
     ),
     "prerequisites": [
-        "- **Runtime:** a fresh supported runtime (Google Colab or Jupyter, Python 3.12). The default path runs on CPU (float32) and uses CUDA automatically when available. CPU is slow but adequate: the build record measured about 7 s to embed and score the 96 test photographs and 181 s for the six epochs of fine-tuning (216 photographs per epoch through the full vision tower, the last two blocks and the head training), including the per-epoch validation scoring, so the whole default path is about three and a half minutes of model time on the build workstation's CPU with the snapshot and photographs already cached (a 2-vCPU hosted runtime will be several times slower); a hosted T4 finishes it in a few minutes. The pinned `torch==2.14.0` install and the 813 MB checkpoint are the large downloads of the run; the photographs add about 39 MB.",
+        "- **Learner:** basic Python and Colab or Jupyter familiarity; no prior experience with SigLIP, CLIP or fine-tuning. The notebook explains sigmoid scores, `logit_scale`/`logit_bias`, prompts, embeddings, accuracy, macro F1, average precision and text-to-image mAP, the attention-pool head and the adapter where they are first used; the Glossary repeats them.",
+        "- **Runtime:** a fresh supported **Linux x86_64** runtime (Google Colab, Kaggle or Linux Jupyter). Section 1 builds its own Python 3.12.12 environment from a hash-locked list of manylinux wheels, so the kernel's own Python version does not matter and nothing is installed into it; a Windows or macOS kernel is not supported. The default path runs on CPU (float32) and uses CUDA automatically when available. CPU is slow but adequate: the build record measured about 7 s to embed and score the 96 test photographs and 181 s for the six epochs of fine-tuning (216 photographs per epoch through the full vision tower, the last two blocks and the head training), including the per-epoch validation scoring, so the whole default path is about three and a half minutes of model time on the build workstation's CPU with the snapshot and photographs already cached (a 2-vCPU hosted runtime will be several times slower); a hosted T4 finishes it in a few minutes. The pinned `torch==2.14.0` install and the 813 MB checkpoint are the large downloads of the run; the photographs add about 39 MB.",
         "- **Knowledge:** basic Python and PIL; what a sigmoid score and a cosine similarity are; what accuracy, macro F1 and average precision measure and why none is a human judgement; why a high score is not a correct label.",
-        "- **Data contract:** records are `{id, image, label}` — a PIL image or a file decodable by Pillow with sides up to `MAX_IMAGE_SIDE` (4096) px and a label of at most 64 plain characters (the prompt is `DEFAULT_PROMPT_TEMPLATE` with the label, or its display name, filled in). Ids match `[A-Za-z0-9_.:-]{1,64}` and are unique; a dataset needs 8..20,000 records over 2..100 labels; splitting is stratified per label after pixel-digest de-duplication so no photograph lands in two splits. BYOD accepts one zip of images plus a `labels.csv` in that shape.",
+        "- **Data contract:** records are `{id, image, label}` — a PIL image or a file decodable by Pillow with sides up to `MAX_IMAGE_SIDE` (4096) px and a label of at most 64 plain characters (the prompt is `DEFAULT_PROMPT_TEMPLATE` with the label, or its display name, filled in). Ids match `[A-Za-z0-9_.:-]{1,64}` and are unique; a dataset needs 8..20,000 records over 2..100 labels; splitting is stratified per label after pixel-digest de-duplication so no photograph lands in two splits. BYOD accepts one zip (or folder) of images plus a `labels.csv` in that shape; after the split every label needs a training, a validation and a test photograph and the training split eight, so the effective BYOD minimum is **12 photographs for two labels**, 15 for three and 4 per label from four labels (`min_byod_photographs(n_labels)` computes it). Every refusal names the `labels.csv` line, the file and the rule.",
         "- **Validation is structural, not semantic:** every image is opened and decoded and every label checked, but nothing checks that a label is right — a mislabelled set is fine-tuned on without complaint.",
         "- **Privacy:** Do not upload confidential or restricted data to a hosted runtime unless you are authorized to process it there. The default path uploads nothing.",
         "- **External access (data):** besides the model snapshot, the default path fetches 360 JPEG/PNG files from `https://inaturalist-open-data.s3.amazonaws.com/photos/<id>/medium.<ext>` (about 39 MB in total), each pinned by byte size and SHA-256 in the carried `samples.py` and refused on any mismatch; every photograph's iNaturalist observation page and observer login are kept in its record. Each photograph carries the CC0 1.0 licence its observer chose (Gurari-style redistribution is not needed: nothing is committed to the repository).",
@@ -148,30 +181,57 @@ TEMPLATE = {
                 "labels table is written to `outputs/{stem}_train.csv` in the shape BYOD expects.\n\n"
                 "Look for: 360 photographs, the six species with 36 / 8 / 16 each, three digests, and four refusal probes — a "
                 "duplicate id, an image over the side ceiling, a dataset with one label and one too small to split — each "
-                "rejected before the model does anything."
+                "rejected before the model does anything.\n\n"
+                "*Evaluation practice.* **Bring your own data (optional):** set `USE_BYOD = True` and either `BYOD_PATH` (a zip or a "
+                "folder holding `labels.csv` and the images, as a path in this runtime — this works on Colab, Kaggle and Jupyter) or "
+                "leave `BYOD_PATH` empty to upload exactly one zip through the Colab dialog; then choose **Run after** from this "
+                "cell. The effective minimum is 12 photographs for two labels (see the Prerequisites); the cell reports how many "
+                "duplicate images the split dropped and warns when a label has fewer than five held-out test photographs.\n\n"
+                "**Predict before running:** the split is made per photograph, and each of the 360 photographs comes from a "
+                "different iNaturalist observation. Will any *observer* (photographer) contribute photographs to more than one "
+                "split — and if so, is that leakage?"
             ),
             "code": (
                 "import hashlib\n"
                 "import json\n"
                 "import time\n"
+                "from collections import Counter\n"
                 "from dataclasses import asdict\n\n"
                 "import numpy as np\n"
                 "from PIL import Image\n\n"
                 "USE_BYOD = False  # @param {{type:\"boolean\"}}\n"
+                "BYOD_PATH = ''  # @param {{type:\"string\"}}\n"
                 "SPLIT_SEED = 42  # @param {{type:\"integer\"}}\n\n"
                 "os.makedirs('outputs', exist_ok=True)\n"
                 "if USE_BYOD:\n"
-                "    from google.colab import files\n"
-                "    uploaded = files.upload()\n"
-                "    file_name, payload = next(iter(uploaded.items()))\n"
-                "    byod_zip = Path('work') / 'byod.zip'\n"
-                "    byod_zip.parent.mkdir(parents=True, exist_ok=True)\n"
-                "    byod_zip.write_bytes(payload)\n"
+                "    if BYOD_PATH.strip():\n"
+                "        byod_zip = Path(BYOD_PATH.strip()).expanduser()\n"
+                "        if not byod_zip.exists():\n"
+                "            raise FileNotFoundError(f'BYOD_PATH {{BYOD_PATH!r}} does not exist (relative paths start at {{Path.cwd()}}): give a .zip or a folder holding labels.csv and the image files.')\n"
+                "        file_name = byod_zip.name\n"
+                "    else:\n"
+                "        try:\n"
+                "            from google.colab import files\n"
+                "        except ImportError:\n"
+                "            raise RuntimeError('USE_BYOD is True but BYOD_PATH is empty, and the upload dialog exists only in Google Colab: on Kaggle or Jupyter put the zip (or folder) in the runtime and set BYOD_PATH to its path.') from None\n"
+                "        uploaded = files.upload() or {{}}\n"
+                "        if len(uploaded) != 1:\n"
+                "            raise ValueError(f'Upload exactly one .zip file (received {{len(uploaded)}}; a cancelled dialog sends none): run this cell again.')\n"
+                "        file_name, payload = next(iter(uploaded.items()))\n"
+                "        if not file_name.lower().endswith('.zip'):\n"
+                "            raise ValueError(f'{{file_name}}: upload one .zip holding labels.csv and the image files.')\n"
+                "        byod_zip = Path('work') / 'byod.zip'\n"
+                "        byod_zip.parent.mkdir(parents=True, exist_ok=True)\n"
+                "        byod_zip.write_bytes(payload)\n"
                 "    records = load_byod_dataset(byod_zip)\n"
+                "    byod_minimum = min_byod_photographs(len({{r['label'] for r in records}})) if len({{r['label'] for r in records}}) >= MIN_CLASSES else None\n"
                 "    splits = split_dataset(records, seed=SPLIT_SEED)\n"
                 "    data_source = 'BYOD (' + file_name + ')'\n"
                 "    display_names = {{}}\n"
-                "    raw_rows = {{'byod': len(records)}}\n"
+                "    raw_rows = {{'byod': len(records), 'duplicate_images_dropped': len(records) - sum(len(part) for part in splits.values()), 'effective_minimum': byod_minimum}}\n"
+                "    thin = {{label: n for label, n in sorted(Counter(r['label'] for r in splits['test']).items()) if n < 5}}\n"
+                "    if thin:\n"
+                "        print({{'caution': 'fewer than five held-out test photographs for some labels: their scores move in steps of 1/n and carry no dispersion estimate; add photographs before reading per-label numbers', 'test_photographs': thin}})\n"
                 "else:\n"
                 "    corpus_files = fetch_corpus(cache_dir='weights/inat-birds')\n"
                 "    corpus = read_corpus(corpus_files)\n"
@@ -179,7 +239,8 @@ TEMPLATE = {
                 "    data_source = f'{{CORPUS_NAME}}: {{CORPUS_RELEASE}} ({{CORPUS_LICENSE}})'\n"
                 "    display_names = {{key: common for key, (_scientific, common) in SPECIES.items()}}\n"
                 "    raw_rows = {{'photographs': len(corpus), 'bytes': sum(len(v) for v in corpus_files.values()), 'observers': len({{r['observer'] for r in corpus}})}}\n"
-                "dataset_manifests = {{name: validate_dataset(part) for name, part in splits.items()}}\n"
+                "# The training split must hold MIN_RECORDS; validation and test only need a photograph per label (split_dataset checks that).\n"
+                "dataset_manifests = {{name: validate_dataset(part, min_records=MIN_RECORDS if name == 'train' else 1) for name, part in splits.items()}}\n"
                 "splits = {{name: manifest['records'] for name, manifest in dataset_manifests.items()}}\n"
                 "disjoint = check_split_disjoint(splits)\n"
                 "train_records, val_records, test_records = splits['train'], splits['validation'], splits['test']\n"
@@ -206,6 +267,17 @@ TEMPLATE = {
         },
         {
             "md": (
+                "**What to notice:** the three split sizes and their digests, the four refusals (each names its rule), and the "
+                "`observer_overlap` line.\n\n"
+                "<details><summary>Check your reasoning</summary>Yes: in the recorded run 53 of the 222 observers contributed "
+                "photographs to more than one split. No photograph is shared (the pixel-digest check proves that), but the same "
+                "photographer's camera, site and style can appear in training and test, so the test score may be a little "
+                "optimistic for photographs from people the model has never seen. The notebook reports the overlap instead of "
+                "hiding it; on your own data, split by photographer or session when your images come from few sources.</details>"
+            ),
+        },
+        {
+            "md": (
                 "## 5. Classify through the inference contract\n\n"
                 "The inference contract is exercised as the inference-only tutorial exercised it: three 32×32 synthetic shapes "
                 "— a red square, a green circle and a blue triangle — rendered in code as ASCII PPM files exactly as the "
@@ -215,7 +287,11 @@ TEMPLATE = {
                 "input manifest; a remote URL is validated too and its rejection recorded as a finding. `zero_shot_classify` "
                 "returns one sigmoid score per candidate label, **ordered by descending score**; `retrieve` ranks the gallery by "
                 "cosine to a query. The per-grid `evaluation_report` on three drawn shapes is `sample-sanity` — plumbing "
-                "evidence, not a measurement; whether the classifier is *right* is what Section 6 measures on 96 photographs."
+                "evidence, not a measurement; whether the classifier is *right* is what Section 6 measures on 96 photographs.\n\n"
+                "*Core concept.* A **sigmoid score** is the model's own logit for one image–prompt pair — the cosine of the two "
+                "embeddings times `logit_scale`, plus `logit_bias` — squashed into 0..1. Each pair is scored on its own.\n\n"
+                "**Predict before running:** each drawn shape is scored against four candidate labels. Will each image's four "
+                "scores add up to 1?"
             ),
             "code": (
                 "SAMPLE_DIGESTS = {{  # examples/sample-data/SHA256SUMS\n"
@@ -292,6 +368,16 @@ TEMPLATE = {
         },
         {
             "md": (
+                "**What to notice:** the rankings are ordered by score, every score lies in 0..1, and the remote URL was refused "
+                "and recorded as a finding instead of being fetched.\n\n"
+                "<details><summary>Check your reasoning</summary>No. SigLIP scores every image–label pair independently through "
+                "a sigmoid, so the four scores need not sum to 1 — they can all be small, or several can be high. That is why a "
+                "score is not a probability that the label is right, and why the model never abstains: the highest-scoring "
+                "label is returned even when none fits. A softmax model (CLIP) would force the scores to sum to 1 instead.</details>"
+            ),
+        },
+        {
+            "md": (
                 "## 6. Baselines and the frozen model's zero-shot score on the test photographs\n\n"
                 "Three systems frame the adaptation, each read three ways. The **majority floor** answers every photograph with "
                 "the most frequent training label (accuracy 1/6 on a balanced split, chance-level macro F1). The **colour "
@@ -304,7 +390,11 @@ TEMPLATE = {
                 "prompt set built from the scientific names is scored too, to show how much the number is the prompt's. Expect "
                 "the frozen model far above both baselines — it is a trained zero-shot classifier — and read the per-species "
                 "breakdown: the build record measured accuracy 0.76 / macro F1 0.76 / mAP 0.72 frozen, with the Chipping Sparrow "
-                "at 0.44 recall and the American Goldfinch at 0.94, and the White-throated Sparrow's recall of 0.81 resting on an average precision of 0.34 — it is over-predicted, not missed."
+                "at 0.44 recall and the American Goldfinch at 0.94, and the White-throated Sparrow's recall of 0.81 resting on an average precision of 0.34 — it is over-predicted, not missed.\n\n"
+                "*Evaluation practice.* The cell reports a **verdict** — whether the frozen model is above both baselines — and "
+                "records it; it does not stop the notebook when the answer is no (on your own data that answer is a finding).\n\n"
+                "**Predict before running:** write down the test accuracy you expect from the majority floor, the colour nearest "
+                "neighbour and the frozen model on six balanced species — and which of the three you expect to be closest to chance."
             ),
             "code": (
                 "baseline_majority = majority_baseline(train_records, test_records, classes)\n"
@@ -321,7 +411,22 @@ TEMPLATE = {
                 "scientific_names = {{key: scientific for key, (scientific, _common) in SPECIES.items()}} if not USE_BYOD else {{}}\n"
                 "frozen_scientific = pipe.evaluate(test_records, classes=classes, class_names_map=scientific_names, prompt_template='This is a photo of {{label}}.')\n"
                 "print({{'frozen_model_test_scientific_name_prompts': {{k: round(frozen_scientific[k], 3) for k in METRICS}}}})\n"
-                "assert frozen_test['t2i_map'] > baseline_majority['t2i_map'] and frozen_test['accuracy'] > baseline_neighbour['accuracy']"
+                "# A reported verdict, not an assertion: on your own data the frozen model may not beat a baseline, and that is a finding.\n"
+                "frozen_beats = {{'t2i_map_above_majority_floor': bool(frozen_test['t2i_map'] > baseline_majority['t2i_map']), 'accuracy_above_colour_neighbour': bool(frozen_test['accuracy'] > baseline_neighbour['accuracy'])}}\n"
+                "frozen_verdict = 'above both baselines' if all(frozen_beats.values()) else 'not above both baselines: read the per-class breakdown and the prompts before adapting'\n"
+                "print({{'frozen_vs_baselines': frozen_verdict, 'checks': frozen_beats}})"
+            ),
+        },
+        {
+            "md": (
+                "**What to notice:** the three systems on three metrics, the per-species recall and average precision, and how "
+                "far the scientific-name prompts move the frozen score.\n\n"
+                "<details><summary>Check your reasoning</summary>In the recorded run the majority floor scored accuracy 0.167 "
+                "(1/6, macro F1 0.048) — chance by construction — and the colour nearest neighbour 0.26 (macro F1 0.261), barely "
+                "above it: four of the six species are streaked brown sparrows, so 27 colour numbers say little. The frozen model "
+                "scored accuracy 0.76, macro F1 0.76 and text-to-image mAP 0.72 with no training at all, and the verdict was "
+                "*above both baselines*. The same model with scientific-name prompts scored about 0.54: the number belongs to "
+                "the prompt as much as to the model.</details>"
             ),
         },
         {
@@ -334,13 +439,19 @@ TEMPLATE = {
                 "model's own sigmoid-scaled logits, and trained with SigLIP's pairwise sigmoid loss (+1 for the gold species, "
                 "−1 for the other five). AdamW at a fixed learning rate, gradient clipping at 1.0, seeded shuffling and no "
                 "scheduler. Epoch 0 records the frozen model's validation metrics; every epoch is scored on the 48 validation "
-                "photographs, and the epoch with the highest validation text-to-image mAP is kept — accuracy on 48 photographs "
-                "moves in steps of 2 %, which is why the retrieval view selects and the 96-photograph test split is what the "
-                "numbers are read from.\n\n"
+                "photographs, and the epoch with the highest validation accuracy is kept (the first one on a tie). Accuracy on 48 "
+                "photographs moves in steps of about 2 %, so the choice is coarse; validation text-to-image mAP is printed beside it "
+                "as a second view, and the 96-photograph test split is what the numbers are read from.\n\n"
                 "Watch the training loss fall from about 1.8 to below 0.1 within six epochs while the validation mAP peaks "
                 "early: 216 photographs are few, the last blocks memorise them, and the selector's job is to stop before that "
-                "hurts. The build record kept epoch 4 of six (validation mAP 0.68 frozen → 0.90); the default is the "
-                "configuration that gained on the held-out split."
+                "hurts. The build record kept epoch 4 of six (validation mAP rose from 0.68 frozen to 0.90 there); the default is the "
+                "configuration that gained on the held-out split.\n\n"
+                "*Core concept.* Every call to `pipe.adapt` starts from the **pinned base**: tensors an earlier call changed are "
+                "restored first, so epoch 0 is always the frozen model. Re-running this cell with a changed field is therefore a "
+                "fresh run, not continued training — but it replaces the default results that Sections 8 and 9 export. To compare "
+                "a change side by side with the default and leave the default exports untouched, use Section 10.\n\n"
+                "**Predict before running:** the training loss will fall every epoch. Will the validation mAP keep rising with "
+                "it, and will the last epoch be the one that is kept?"
             ),
             "code": (
                 "EPOCHS = 6  # @param {{type:\"integer\"}}\n"
@@ -354,10 +465,24 @@ TEMPLATE = {
                 "    if 'note' in entry:\n"
                 "        row['note'] = entry['note']\n"
                 "    print(row)\n\n\n"
+                "settings = {{'epochs': EPOCHS, 'lr': LEARNING_RATE, 'batch_size': BATCH_SIZE, 'trainable_vision_layers': TRAINABLE_VISION_LAYERS}}\n"
+                "if settings != {{'epochs': 6, 'lr': 5e-5, 'batch_size': 16, 'trainable_vision_layers': 2}}:\n"
+                "    print({{'note': 'changed settings: this run starts again from the pinned base and replaces the default results of Sections 8-9; Section 10 compares a change side by side instead', 'settings': settings}})\n"
                 "t0 = time.perf_counter()\n"
                 "adapt_result = pipe.adapt(train_records, val_records, epochs=EPOCHS, lr=LEARNING_RATE, batch_size=BATCH_SIZE, trainable_vision_layers=TRAINABLE_VISION_LAYERS, class_names_map=display_names, progress=report)\n"
                 "adapt_seconds = round(time.perf_counter() - t0, 1)\n"
-                "print({{'trainable_parameters': adapt_result['n_trainable'], 'total_parameters': adapt_result['n_total'], 'classes': adapt_result['classes'], 'best_epoch': adapt_result['best_epoch'], 'selection': adapt_result['selection'], 'seconds': adapt_seconds}})"
+                "print({{'trainable_parameters': adapt_result['n_trainable'], 'total_parameters': adapt_result['n_total'], 'classes': adapt_result['classes'], 'best_epoch': adapt_result['best_epoch'], 'selection': adapt_result['selection'], 'started_from': adapt_result['started_from'], 'seconds': adapt_seconds}})"
+            ),
+        },
+        {
+            "md": (
+                "**What to notice:** epoch 0 (the frozen model, before any update), the loss column, the validation columns, "
+                "and which epoch is reported as `best_epoch`.\n\n"
+                "<details><summary>Check your reasoning</summary>No to both. In the recorded run the loss fell from about 1.8 to "
+                "below 0.1 within six epochs, while the validation numbers rose from the frozen model's (validation mAP 0.68) and "
+                "then stopped improving: epoch 4 of six was kept on validation accuracy (validation mAP 0.90 at that epoch). 216 photographs are few and the last "
+                "blocks start to memorise them, so a falling training loss is not evidence of a better classifier; the held-out "
+                "split decides, and the test split is kept for Section 8.</details>"
             ),
         },
         {
@@ -370,10 +495,14 @@ TEMPLATE = {
                 "carries to a prompt set it never saw is the more general one). Read it in this order: **text-to-image mAP** "
                 "first (the metric the epoch was selected on — the build record measured 0.72 → 0.89), then accuracy and macro "
                 "F1 (0.76 → 0.84 and 0.76 → 0.85, eight photographs of 96), then the per-species recall, where the "
-                "Chipping Sparrow moved from 0.44 to 0.69 and the Song Sparrow from 0.75 to 0.94 while the White-throated Sparrow's recall fell from 0.81 to 0.75 as its average precision rose from 0.34 to 0.87 — it stopped being the default answer. The cell asserts the "
-                "adapted mAP is above the frozen one. Ninety-six photographs from one seeded split give **no dispersion "
+                "Chipping Sparrow moved from 0.44 to 0.69 and the Song Sparrow from 0.75 to 0.94 while the White-throated Sparrow's recall fell from 0.81 to 0.75 as its average precision rose from 0.34 to 0.87 — it stopped being the default answer. The cell reports a "
+                "**verdict** — `improved`, `no gain` or `worse` on the held-out mAP — and records it in the evaluation report; a "
+                "fine-tune that does not help is a finding, not an error, and Section 9 still exports, reloads and writes the "
+                "provenance. Ninety-six photographs from one seeded split give **no dispersion "
                 "estimate**; the deltas are sample-sanity evidence that the adaptation contract works, not a benchmark, and a "
-                "gain on six birds says nothing about your classes until you measure them."
+                "gain on six birds says nothing about your classes until you measure them.\n\n"
+                "**Predict before running:** will the fine-tune help every species equally? Which species do you expect to gain "
+                "most — one the frozen model already got right, or one it confused?"
             ),
             "code": (
                 "adapted_test = pipe.evaluate(test_records, classes=classes, class_names_map=display_names)\n"
@@ -384,6 +513,10 @@ TEMPLATE = {
                 "comparison['delta_vs_frozen'] = {{metric: round(adapted_test[metric] - frozen_test[metric], 3) for metric in METRICS}}\n"
                 "comparison['scientific_name_prompts'] = {{metric: {{'frozen': round(frozen_scientific[metric], 3), 'adapted': round(adapted_scientific[metric], 3)}} for metric in METRICS}}\n"
                 "comparison['by_species'] = {{c: {{'n': frozen_fields[c]['n'], 'frozen_recall': frozen_fields[c]['recall'], 'adapted_recall': adapted_fields[c]['recall'], 'frozen_ap': frozen_fields[c]['ap'], 'adapted_ap': adapted_fields[c]['ap']}} for c in classes}}\n"
+                "# Reported verdicts, not assertions: a non-improving fine-tune is a result to record, and export and reload still run.\n"
+                "delta_map = adapted_test['t2i_map'] - frozen_test['t2i_map']\n"
+                "adaptation_verdict = 'improved' if delta_map > 0 else ('no gain' if delta_map == 0 else 'worse')\n"
+                "comparison['verdicts'] = {{'frozen_vs_baselines': frozen_verdict, 'adapted_vs_frozen_t2i_map': adaptation_verdict}}\n"
                 "for key, row in comparison.items():\n"
                 "    print({{key: row}})\n"
                 "evaluation_report_payload = {{\n"
@@ -406,8 +539,20 @@ TEMPLATE = {
                 "}}\n"
                 "with open('outputs/{stem}_evaluation_report.json', 'w', encoding='utf-8') as f:\n"
                 "    json.dump(evaluation_report_payload, f, indent=2, ensure_ascii=False)\n"
-                "assert adapted_test['t2i_map'] > frozen_test['t2i_map']\n"
-                "print({{'report': 'outputs/{stem}_evaluation_report.json'}})"
+                "print({{'adaptation_verdict': adaptation_verdict, 'test_t2i_map_delta': round(delta_map, 3), 'report': 'outputs/{stem}_evaluation_report.json'}})"
+            ),
+        },
+        {
+            "md": (
+                "**What to notice:** the four-way table, the `verdicts` row, and the per-species rows where recall and average "
+                "precision move in different directions.\n\n"
+                "<details><summary>Check your reasoning</summary>Not equally. In the recorded run the verdict was *improved*: "
+                "test mAP 0.718 → 0.891 and accuracy 0.760 → 0.844 (eight photographs of 96). The largest gains were on species "
+                "the prompts separated worst — the Chipping Sparrow's recall rose from 0.44 to 0.69 and the Song Sparrow's from "
+                "0.75 to 0.94 — while the White-throated Sparrow's recall *fell* from 0.81 to 0.75 as its average precision rose "
+                "from 0.34 to 0.87: the frozen model had been answering it for photographs of other sparrows. One seeded split of "
+                "96 photographs gives no dispersion estimate, so read these as evidence that the adaptation contract works, not "
+                "as a benchmark.</details>"
             ),
         },
         {
@@ -425,7 +570,10 @@ TEMPLATE = {
                 "(OUT8). `SiglipPipeline.from_artifact` re-verifies the base snapshot, checks the artifact manifest, its digest "
                 "and its exact tensor set **before** deserialising, refuses any tensor outside the vision tower, and overlays "
                 "the tensors onto a freshly loaded base — a new object from files, not the in-memory model (VER2). The cell "
-                "asserts identical image embeddings on eight test photographs (VER4)."
+                "asserts identical image embeddings on eight test photographs (VER4) — a contract check, so it stays a hard "
+                "check: a reloaded artifact that differs would be a broken export.\n\n"
+                "**Predict before running:** the reloaded pipeline is rebuilt from files on disk — a fresh base plus the adapter "
+                "tensors. Will its embeddings equal the in-memory adapted model's exactly, or only approximately?"
             ),
             "code": (
                 "import shutil\n\n"
@@ -469,6 +617,81 @@ TEMPLATE = {
                 "print(sorted(os.listdir('outputs')))"
             ),
         },
+        {
+            "md": (
+                "**What to notice:** the adapter's size and tensor count, `identical_rows` against `of`, and the list of files in "
+                "`outputs/`.\n\n"
+                "<details><summary>Check your reasoning</summary>Exactly, to the tolerance printed: the recorded run reported "
+                "identical embeddings on all eight test photographs. The adapter holds the trained tensors byte for byte "
+                "(safetensors, no pickle), the base is the same verified snapshot, and the overlay replaces exactly those "
+                "tensors, so the arithmetic is the same. On a GPU a different kernel choice could in principle move the last "
+                "digit, which is why the check uses a tolerance of 1e-5 rather than bit equality.</details>"
+            ),
+        },
+        {
+            "md": (
+                "## 10. Change one thing: how many blocks to train (optional)\n\n"
+                "*Evaluation practice.* A **Predict → Change one thing → Run → Observe → Explain** activity, off by default so "
+                "Run all is unaffected. Set `RUN_EXPERIMENT = True`, change **one** field — by default it trains the last **four** "
+                "vision blocks instead of two — and run this cell (it needs the variables of Sections 4–9, so run it after them). "
+                "The experiment loads its **own** pipeline from the verified snapshot, so it starts from the frozen model and "
+                "never touches the default `pipe`; it writes only to `outputs/{stem}_experiment/`, prints the default and the "
+                "changed run side by side, and checks that the default exports (adapter, evaluation report, result) are "
+                "byte-identical afterwards. It loads a second copy of the model (about 0.8 GB) and trains again, so expect a few "
+                "minutes on a T4 and much longer on CPU.\n\n"
+                "**Predict:** with four trainable blocks — 35,440,128 parameters instead of 21,264,384, an adapter of about "
+                "142 MB instead of 85 MB — will held-out mAP rise above the default run's, stay level, or fall? What should "
+                "epoch 0 of the experiment show?"
+            ),
+            "code": (
+                "RUN_EXPERIMENT = False  # @param {{type:\"boolean\"}}\n"
+                "EXPERIMENT_TRAINABLE_VISION_LAYERS = 4  # @param {{type:\"integer\"}}\n"
+                "EXPERIMENT_EPOCHS = 6  # @param {{type:\"integer\"}}\n"
+                "EXPERIMENT_LEARNING_RATE = 5e-5  # @param {{type:\"number\"}}\n\n"
+                "if not RUN_EXPERIMENT:\n"
+                "    print({{'experiment': 'skipped (RUN_EXPERIMENT = False); the default path above is complete'}})\n"
+                "else:\n"
+                "    canonical_files = {{'adapter': artifact_dir / 'adapter.safetensors', 'evaluation_report': Path('outputs/{stem}_evaluation_report.json'), 'result': Path('outputs/{stem}_result.json')}}\n"
+                "    canonical = {{name: hashlib.sha256(path.read_bytes()).hexdigest() for name, path in canonical_files.items()}}\n"
+                "    experiment_dir = Path('outputs/{stem}_experiment')\n"
+                "    shutil.rmtree(experiment_dir, ignore_errors=True)\n"
+                "    experiment_dir.mkdir(parents=True)\n"
+                "    # Its own pipeline from the verified snapshot: the experiment starts from the frozen model and the default pipe is untouched.\n"
+                "    experiment_pipe = SiglipPipeline.from_pretrained(weights_dir=WEIGHTS_DIR)\n"
+                "    experiment_result = experiment_pipe.adapt(train_records, val_records, epochs=EXPERIMENT_EPOCHS, lr=EXPERIMENT_LEARNING_RATE, batch_size=BATCH_SIZE, trainable_vision_layers=EXPERIMENT_TRAINABLE_VISION_LAYERS, class_names_map=display_names, progress=report)\n"
+                "    experiment_test = experiment_pipe.evaluate(test_records, classes=classes, class_names_map=display_names)\n"
+                "    experiment_dir_adapter = experiment_pipe.save_artifact(experiment_dir / 'adapter', metadata={{'tutorial': '{stem}', 'experiment': True, 'data_source': data_source}})\n"
+                "    side_by_side = {{\n"
+                "        'settings': {{'default': {{'trainable_vision_layers': adapt_result['trainable_vision_layers'], 'epochs': adapt_result['epochs'], 'lr': adapt_result['lr']}}, 'experiment': {{'trainable_vision_layers': EXPERIMENT_TRAINABLE_VISION_LAYERS, 'epochs': EXPERIMENT_EPOCHS, 'lr': EXPERIMENT_LEARNING_RATE}}}},\n"
+                "        'trainable_parameters': {{'default': adapt_result['n_trainable'], 'experiment': experiment_result['n_trainable']}},\n"
+                "        'epoch0_validation_t2i_map (frozen model)': {{'default': round(adapt_result['history'][0]['val']['t2i_map'], 3), 'experiment': round(experiment_result['history'][0]['val']['t2i_map'], 3)}},\n"
+                "        'best_epoch': {{'default': adapt_result['best_epoch'], 'experiment': experiment_result['best_epoch']}},\n"
+                "        'test': {{metric: {{'frozen': round(frozen_test[metric], 3), 'default': round(adapted_test[metric], 3), 'experiment': round(experiment_test[metric], 3)}} for metric in METRICS}},\n"
+                "        'adapter_bytes': {{'default': artifact_manifest['files'][0]['bytes'], 'experiment': (experiment_dir_adapter / 'adapter.safetensors').stat().st_size}},\n"
+                "    }}\n"
+                "    for key, row in side_by_side.items():\n"
+                "        print({{key: row}})\n"
+                "    with open(experiment_dir / 'experiment_report.json', 'w', encoding='utf-8') as handle:\n"
+                "        json.dump({{'side_by_side': side_by_side, 'history': experiment_result['history'], 'test_metrics': experiment_test}}, handle, indent=2, ensure_ascii=False)\n"
+                "    unchanged = {{name: hashlib.sha256(path.read_bytes()).hexdigest() == canonical[name] for name, path in canonical_files.items()}}\n"
+                "    if not all(unchanged.values()):\n"
+                "        raise RuntimeError(f'the experiment changed a default export: {{unchanged}}')\n"
+                "    print({{'default_exports_unchanged': unchanged, 'experiment_outputs': str(experiment_dir)}})\n"
+                "    del experiment_pipe"
+            ),
+        },
+        {
+            "md": (
+                "**Observe → Explain.** Compare the two `test` columns with the frozen one, and read `best_epoch` for both.\n\n"
+                "<details><summary>Check your reasoning</summary>Epoch 0 of the experiment must equal epoch 0 of the default run "
+                "(validation mAP 0.68 in the recorded run): both are the frozen model, which is exactly what the restart-from-base "
+                "rule guarantees. No experiment run is recorded yet, so the held-out result is yours to explain. Twice the "
+                "trainable blocks give the model more capacity to fit 216 photographs, which can raise the held-out score or "
+                "memorise faster and peak earlier; with 48 validation photographs choosing the epoch and 96 test photographs "
+                "scoring it, a difference of one or two photographs (0.01–0.02 accuracy) is within what a different seed could "
+                "produce. Say which it was on your run, and whether the extra 57 MB of adapter bought anything.</details>"
+            ),
+        },
     ],
     "closing": (
         "## Interpretation and limits\n\n"
@@ -499,10 +722,85 @@ TEMPLATE = {
         "against two trivial baselines and the frozen model on an image-disjoint split, and emit the shown machine-readable "
         "artifacts — without the repository being reachable. It does **not** establish benchmark superiority, zero-shot "
         "accuracy on any other population or camera, calibration, or production fitness.\n\n"
-        "**Optional experiments (they do not affect the default path):** set `TRAINABLE_VISION_LAYERS = 4` and compare the "
-        "artifact size and the held-out mAP; raise `EPOCHS` and watch the validation mAP pick the epoch while the training "
-        "loss keeps falling; change `LEARNING_RATE` to `1e-5` and read a smaller, steadier gain; or bring your own photographs "
-        "through BYOD and read the two baselines before the adapted number.\n\n"
+        "**Optional experiments (off by default; each names its field and what to run):** Section 10 trains four blocks "
+        "instead of two in its own pipeline and prints it beside the default run — change `EXPERIMENT_TRAINABLE_VISION_LAYERS`, "
+        "`EXPERIMENT_EPOCHS` or `EXPERIMENT_LEARNING_RATE` there (one at a time) and run that cell again; every run starts "
+        "from the frozen model and writes only to `outputs/{stem}_experiment/`. Changing `EPOCHS`, `LEARNING_RATE` or "
+        "`TRAINABLE_VISION_LAYERS` in Section 7 and choosing **Run after** also starts from the pinned base, but it replaces "
+        "the default results and exports. BYOD: `USE_BYOD` and `BYOD_PATH` in Section 4, then **Run after** from Section 4, "
+        "and read the two baselines before the adapted number.\n\n"
+        "## Troubleshooting\n\n"
+        "- **Section 1 stops with \"This notebook needs a Linux x86_64 runtime\"** — you are on Windows, macOS or an ARM "
+        "machine. Use Google Colab, Kaggle or a Linux x86_64 Jupyter server.\n"
+        "- **The uv wheel fails its size/SHA-256 check, or a download in Section 1 times out** — run Section 1 again; a "
+        "complete environment is reused, an incomplete one is finished. If it repeats, the network is blocking or altering "
+        "`files.pythonhosted.org` or `pypi.org`.\n"
+        "- **\"The isolated environment's Python process exited\"** — usually out of memory (Section 9 holds the adapted and "
+        "the reloaded model, Section 10 a third copy). Restart the session and choose **Run all**; prefer a GPU runtime, and "
+        "leave Section 10 off on a small CPU runtime.\n"
+        "- **You re-ran Section 1 on its own** — nothing is lost: it keeps the running worker and every variable, so the "
+        "cells after it keep working. After a session restart, run from the top.\n"
+        "- **Section 3 reports a size or SHA-256 mismatch, or cannot reach the Hub** — `verify_snapshot` names the file. "
+        "Delete the snapshot folder Section 3 prints as `weights_dir` and run Section 3 again; the snapshot comes from "
+        "`huggingface.co`.\n"
+        "- **Section 4 cannot fetch a photograph, or one fails its digest** — `fetch_corpus` names the photo; the open-data "
+        "bucket may be briefly unreachable. Run Section 4 again (cached photographs are re-hashed, not re-downloaded); delete "
+        "`weights/inat-birds/` if a cached file is corrupt.\n"
+        "- **CUDA out of memory in Section 7 or 10** — set `BATCH_SIZE = 8` in Section 7 and choose **Run after** from "
+        "Section 7 (the numbers will differ a little from the recorded run), or use a runtime with more GPU memory.\n"
+        "- **BYOD: \"BYOD_PATH … does not exist\"** — the path is relative to the working directory printed in the message; "
+        "give the zip or the folder holding `labels.csv`.\n"
+        "- **BYOD: \"the upload dialog exists only in Google Colab\"** — on Kaggle or Jupyter, put the zip in the runtime "
+        "(or attach it as a dataset) and set `BYOD_PATH`.\n"
+        "- **BYOD: \"Upload exactly one .zip file\"** — the dialog was cancelled or several files were chosen; run Section 4 "
+        "again.\n"
+        "- **BYOD: \"labels.csv line N (file …): …\"** — that row names a file that is not in the zip or folder, an id or "
+        "label outside the allowed characters, or an image Pillow cannot decode; fix that row.\n"
+        "- **BYOD: \"split leaves … supply at least N photographs\"** — a label is too small for the split; the message "
+        "states the minimum for your number of labels (12 for two labels).\n\n"
+        "## Glossary\n\n"
+        "- **Zero-shot classification** — classifying with no training on the classes: each label is put into a prompt and "
+        "the photograph is scored against every prompt.\n"
+        "- **Prompt / prompt template** — the sentence a label is put into before the text tower embeds it "
+        "(`This is a photo of {{label}}.`); a different wording gives a different classifier.\n"
+        "- **Embedding** — the unit-length vector a tower produces for a photograph or a text; two embeddings are compared "
+        "by their cosine similarity.\n"
+        "- **`logit_scale` / `logit_bias`** — two learned numbers that turn a cosine into the model's logit "
+        "(cosine × e^`logit_scale` + `logit_bias`); they stay frozen here.\n"
+        "- **Sigmoid score** — the logit squashed into 0..1 for one image–prompt pair on its own; scores for different labels "
+        "do not sum to 1 and are not calibrated probabilities.\n"
+        "- **Sigmoid loss** — SigLIP's training loss: for every photograph and every class prompt, push the logit up for the "
+        "true class (+1) and down for the others (−1).\n"
+        "- **Vision tower blocks / attention-pool head** — the image tower is twelve transformer blocks followed by a "
+        "post-layernorm and an attention-pooling head that makes one vector per image; Section 7 trains the last two blocks "
+        "and the head.\n"
+        "- **Accuracy** — the share of photographs whose top label is right.\n"
+        "- **Macro F1** — the unweighted mean over classes of the harmonic mean of precision and recall, so a class the "
+        "model ignores pulls it down.\n"
+        "- **Average precision (AP) / text-to-image mAP** — rank all test photographs by one class prompt's score and "
+        "average the precision at each true photograph; mAP averages that over the classes. It reads the ranking, not just "
+        "the top label.\n"
+        "- **Majority floor / colour nearest neighbour** — two non-neural baselines: always answer the most frequent "
+        "training label; answer the label of the training photograph with the closest 3×3 mean-colour grid.\n"
+        "- **Epoch / learning rate** — one pass over the training photographs; the size of each update step.\n"
+        "- **Validation selection** — choosing the epoch on a split that is neither trained on nor used for the final "
+        "score.\n"
+        "- **Held-out test split** — photographs never used for training or selection; the numbers to report.\n"
+        "- **Leakage** — the same (or near-identical) photograph, or the same source, in training and test; the split "
+        "de-duplicates by decoded pixels and reports observer overlap.\n"
+        "- **Adapter** — the trained tensors only (safetensors), overlaid on the pinned base at load time.\n"
+        "- **Reload parity** — the exported adapter, loaded into a fresh pipeline from disk, gives the same embeddings.\n"
+        "- **BYOD** — bring your own data: your labelled photographs through the same cells.\n\n"
+        "## Conclusion (your notes)\n\n"
+        "Optional — fill in from **your** run, not the recorded one:\n\n"
+        "- The task was ___ on ___ test photographs of ___ classes.\n"
+        "- The majority floor scored ___, the colour neighbour ___ and the frozen model ___ (accuracy); the frozen verdict "
+        "was ___.\n"
+        "- After fine-tuning ___ blocks, test mAP moved from ___ to ___ and accuracy from ___ to ___; the adaptation verdict "
+        "was ___.\n"
+        "- The species that changed most was ___, because ___.\n"
+        "- One reason not to trust this number on my own photographs yet: ___ (for example the size of the test split, "
+        "observer overlap, or the prompts).\n\n"
         "## References\n\n"
         "- Repository README: https://github.com/kurtvalcorza/siglip-v1-zero-shot-pipeline/blob/main/README.md\n"
         "- Repository model card: https://github.com/kurtvalcorza/siglip-v1-zero-shot-pipeline/blob/main/MODEL_CARD.md\n"
@@ -512,6 +810,6 @@ TEMPLATE = {
         "- Sigmoid Loss for Language Image Pre-Training (Zhai, Mustafa, Kolesnikov and Beyer, ICCV 2023): https://arxiv.org/abs/2303.15343\n"
         "- The SigLIP 2 successor row in this fleet, sharing the code shape: https://github.com/kurtvalcorza/siglip2-vision-language-pipeline\n"
         "- iNaturalist open data (CC0 photographs, each observer's own licence): https://www.inaturalist.org/pages/developers — bucket https://inaturalist-open-data.s3.amazonaws.com/\n"
-        "- DIMER Notebook Specification 2.0 and Model Card Specification 1.1 (fleet specs in the ml-worker repository)"
+        "- DIMER Notebook Specification 2.2 and Model Card Specification 1.1 (fleet specs in the ml-worker repository)"
     ),
 }

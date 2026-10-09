@@ -15,7 +15,7 @@ The wrapper code in this repository is MIT licensed. The model weights retain Go
 
 ## Status
 
-**Release-grade.** The inference contract, the adaptation contract and the real pinned checkpoint have been exercised on the build workstation's CPU (the unit and model-backed suites, and the default tutorial path through the package API) and — for the `E2E` standalone tutorial at blob `bd4b3cba` — in a clean Kaggle Tesla T4 runtime on 2026-09-20 (recorded in `docs/release-verification.md`). A later notebook revision returns to Candidate until a clean-runtime execution of that exact blob is recorded. Production HTTP serving / DIMER worker packaging remains a separate serving-readiness milestone.
+**Candidate.** The inference contract, the adaptation contract and the real pinned checkpoint have been exercised on the build workstation's CPU (the unit and model-backed suites, and the default tutorial path through the package API) and — for the `E2E` standalone tutorial at blob `7e07ba5c` — in one pass on a fresh Colab Tesla T4 on 2026-10-09 (recorded in `docs/release-verification.md`; the status stays Candidate until the BYOD journeys are run). A later notebook revision returns to Candidate until a clean-runtime execution of that exact blob is recorded. Production HTTP serving / DIMER worker packaging remains a separate serving-readiness milestone.
 
 ## Capabilities
 
@@ -87,7 +87,7 @@ The default path runs on CPU and uses CUDA automatically when present (about thr
 
 ## Release status
 
-**Release-grade** — the `E2E` notebook blob `bd4b3cba` (committed at `cb34e57`) executed top-to-bottom in a clean Kaggle Tesla T4 runtime on 2026-09-20 (14/14 ok (1 restart after install cell), 455.3 s); the record is in `docs/release-verification.md` and `STATUS.md`. Static and unit checks — including the standalone generator parity checks — are necessary but were never the evidence; the hosted run is. A later change to the carried modules or the notebook returns the status to Candidate until re-verified.
+**Candidate** — **Colab T4 one-pass run of the isolated-environment revision (2026-10-09).** Commit `ec6b1bc` / blob `7e07ba5cbd54` (generator `build_notebook.py/2.2`, `notebook_spec` 2.2, hash-locked isolated uv environment that now pins sentencepiece and protobuf for the SentencePiece `SiglipTokenizer`, worker `google.colab` stubs with a `ModuleSpec`) executed in one pass with no restart and 0 errors on a fresh Colab Tesla T4 (Colab CLI 0.7.4 sequential execution, not a browser `Run all`; 16/16 code cells, 614.2 s wall, `cuda`); evidence in `docs/execution-evidence/2026-10-09-ec6b1bc/`. The status stays Candidate (REL14): the BYOD journeys (REL12) and the optional Section 10 experiment were not hosted-run. The 2026-09-20 Kaggle T4 run of blob `bd4b3cba` (14/14 ok, one restart after the install cell) is history. The record is in `docs/release-verification.md` and `STATUS.md`.
 
 ## Score semantics
 

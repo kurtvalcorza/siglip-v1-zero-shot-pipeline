@@ -4,3 +4,6 @@
 # Model weights cache files must retain exact upstream bytes
 weights/** -text
 examples/sample-data/** -text
+
+# Execution evidence: executed notebooks and logs are kept byte-exact (digests recorded)
+docs/execution-evidence/** -text

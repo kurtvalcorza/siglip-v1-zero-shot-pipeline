@@ -154,6 +154,8 @@ stated runtime, not general estimates.
 
 ## Current status
 
+**Pending (tier C review fixes, 2026-10-25):** `tutorials/siglip_v1_zero_shot_colab.ipynb` blob `a32c5c0263e955bed994c3174f06a0dc627092cf`, generated at `b98e179` (T81-1..T81-5). It changes markdown, the use notice, `metadata.dimer` and the `NOTEBOOK_SOURCE` record only. Status **Candidate**; its hosted Colab T4 run is pending, and the runs below describe earlier blobs (REL14).
+
 **Candidate** (2026-10-09). **Colab T4 one-pass run of the isolated-environment revision (2026-10-09).** Commit `ec6b1bc` / blob `7e07ba5cbd54` (generator `build_notebook.py/2.2`, `notebook_spec` 2.2, hash-locked isolated uv environment that now pins sentencepiece and protobuf for the SentencePiece `SiglipTokenizer`, worker `google.colab` stubs with a `ModuleSpec`) executed in one pass with no restart and 0 errors on a fresh Colab Tesla T4 (Colab CLI 0.7.4 sequential execution, not a browser `Run all`; 16/16 code cells, 614.2 s wall, `cuda`); evidence in `docs/execution-evidence/2026-10-09-ec6b1bc/`. The status stays Candidate (REL14): the BYOD journeys (REL12) and the optional Section 10 experiment were not hosted-run. The 2026-09-20 Kaggle T4 run of blob `bd4b3cba` (14/14 ok, one restart after the install cell) is history.
 
 Facts a reviewer should still weigh: the frozen model is already a usable zero-shot classifier on the six species

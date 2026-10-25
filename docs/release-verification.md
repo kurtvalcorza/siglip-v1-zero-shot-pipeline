@@ -162,7 +162,7 @@ Facts a reviewer should still weigh: the frozen model is already a usable zero-s
 the common-name prompt separated worst (Chipping Sparrow recall 0.44 → 0.69, Song Sparrow 0.75 → 0.94) while the
 White-throated Sparrow — over-predicted by the frozen model (recall 0.81 on an average precision of 0.34) — lost recall
 (0.75) as its average precision rose (0.87); the 48-photograph validation split moves accuracy in 2 % steps, which is
-why the epoch is selected on mAP, and its accuracy moved between 0.71 and 0.85 from one epoch to the next, which is
+why validation mAP is printed beside the validation accuracy the epoch is selected on, and its accuracy moved between 0.71 and 0.85 from one epoch to the next, which is
 what "no dispersion estimate" means here; the scientific-name prompt set is scored so a reviewer can see how much of
 the number is the prompt's (0.54 frozen against 0.76 for the common names); and the drawn shapes re-scored after
 adaptation are three images of evidence about behaviour outside the corpus, not a measurement.

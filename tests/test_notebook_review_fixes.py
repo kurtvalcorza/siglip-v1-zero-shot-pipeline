@@ -413,9 +413,9 @@ def test_sig_m1_byod_path_runs_section_4_outside_colab(notebook, tmp_path, monke
 def test_sig_m1_byod_without_path_outside_colab_and_bad_path_are_explained(notebook, tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setitem(sys.modules, "google", None)  # no google.colab here, as on Kaggle or Jupyter
-    with pytest.raises(RuntimeError, match="upload dialog exists only in Google Colab"):
+    with pytest.raises(ValueError, match="upload dialog exists only in Google Colab"):  # DAT20: a BYODRefusal
         exec(_section_4(notebook, True, ""), _section_4_namespace())
-    with pytest.raises(FileNotFoundError, match="BYOD_PATH 'nowhere.zip' does not exist"):
+    with pytest.raises(ValueError, match="nowhere.zip: BYOD_PATH 'nowhere.zip' does not exist"):  # DAT20: a BYODRefusal
         exec(_section_4(notebook, True, "nowhere.zip"), _section_4_namespace())
 
 

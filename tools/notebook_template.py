@@ -116,7 +116,7 @@ TEMPLATE = {
     ),
     "intro": (
         "`google/siglip-base-patch16-256` is the base SigLIP model of Zhai, Mustafa, Kolesnikov and Beyer (ICCV 2023) — a ViT-B/16 image tower at 256×256 "
-        "with an attention-pool head and a 12-layer text tower over a 32,000-piece English SentencePiece vocabulary, trained on the English pairs of WebLI with the sigmoid loss; 203,202,050 parameters, "
+        "with an attention-pool head and a 12-layer text tower over a 32,000-piece English SentencePiece vocabulary, trained on the English pairs of WebLI with the sigmoid loss [1]; 203,202,050 parameters, "
         "published under the **Apache-2.0** licence. A photograph and a prompt are scored by the cosine of their projected "
         "embeddings, scaled and shifted by the model's learned `logit_scale` and `logit_bias` and read through a sigmoid: the "
         "scores are independent per pair, **not calibrated probabilities**, **prompt/label dependent**, and the model never "
@@ -124,8 +124,13 @@ TEMPLATE = {
         "What this notebook adds to inference is **adaptation with labelled photographs**. The dataset is real and where the "
         "frozen model has room to improve: 360 CC0-licensed, research-grade iNaturalist photographs of six common North "
         "American birds (**CC0 1.0**; four small sparrows, a junco and two finches, 60 per species, one per observer), pinned "
-        "by photo id, byte size and SHA-256 and fetched from the project's open-data bucket at run time. Zero-shot prompts from "
-        "the common names separate these species only partly (the build record measured accuracy 0.76 frozen on the 96 test "
+        "by photo id, byte size and SHA-256 and fetched from the project's open-data bucket at run time. **Overlap with the training data:** WebLI is a web-scale "
+        "collection of image–text pairs (model card, [1]) whose contents are not published. Research-grade iNaturalist photographs "
+        "and their species names are public web pages, so some of these photographs, or near-duplicates with their names, are "
+        "plausibly in WebLI. The overlap is inferred, not verified, and cannot be checked from outside. \"Zero-shot\" here means only "
+        "that this notebook gives the model no labelled photographs before Section 6; it does not mean the model never saw these "
+        "species. Zero-shot prompts from "
+        "the common names separate these species only partly (the recorded runs measured accuracy 0.76 frozen on the 96 test "
         "photographs, with the Chipping Sparrow at 0.44 recall and the White-throated Sparrow's average precision at 0.34), so the honest question is narrow: does a bounded "
         "fine-tuning of the vision tower's last blocks on 216 photographs move zero-shot accuracy and the retrieval view "
         "(**text-to-image mAP**) on an image-disjoint test split, per species, against two **non-neural baselines** (the "
@@ -137,7 +142,7 @@ TEMPLATE = {
     "guided": {
         "opening": [
             (
-                "**Who this notebook is for.** A learner who knows basic Python, has used Colab or Jupyter and has met image classification, and wants to see how a vision-language model classifies photographs of classes it was never trained on, how to measure that honestly, and how to adapt it to a small labelled set without fooling themselves. No prior experience with SigLIP, CLIP or fine-tuning is assumed; each term is explained where it first matters and again in the **Glossary** at the end. A T4 GPU runtime finishes the fine-tuning in a few minutes; CPU works but is several times slower.\n\n**Input → Model → Output.**\n\n| | Zero-shot classification | Text-to-image retrieval | Bounded fine-tuning |\n|---|---|---|---|\n| Input | one photograph and candidate labels, each put into a prompt | a text query and a gallery of photographs | labelled photographs (216 training and 48 validation in the sample) |\n| Model | image tower and text tower; the cosine of the two embeddings × `logit_scale` + `logit_bias`, read through a sigmoid | the same two towers; cosine ranking | the last two vision-tower blocks, the post-layernorm and the attention-pool head, trained with the sigmoid loss; everything else frozen |\n| Output | one independent sigmoid score per label, ranked (never an abstention) | gallery photographs ranked by cosine | an 85 MB safetensors adapter, and held-out accuracy, macro F1 and text-to-image mAP |\n\n**How to use this notebook.** Choose a runtime (**Runtime → Change runtime type → T4 GPU** is faster; CPU works), then **Runtime → Run all**. Run all completes in one pass: Section 1 installs nothing into the notebook's own Python, so no restart is needed. Sections 1–3 are **infrastructure** — the isolated environment, the carried package and the model snapshot — and their cells are collapsed; you may run them without studying them. The learning path starts in Section 4. Form fields (`# @param`) are the only values meant to be edited, and the defaults reproduce the recorded run. Before each principal result the notebook asks you to **Predict**; after it come **What to notice** and a collapsible **Check your reasoning** with a worked answer from the recorded run (the Kaggle T4 run of 20 September 2026; a CPU run can differ in the last digit). Section 10 is a **change-one-thing experiment**, off by default. **Troubleshooting**, a **Glossary** and a **Conclusion** template are at the end. Writing your predictions down is optional.\n\n**Roadmap:** 1–3 infrastructure → 4 photographs, validation and a leakage-free split → 5 the inference contract on three drawn shapes → 6 two baselines and the frozen model *(evaluation practice)* → 7 bounded fine-tuning → 8 held-out evaluation, per species → 9 the shapes again, export and reload → 10 change one thing (optional) → conclude. Sections 5 and 7 carry the **core concepts** (sigmoid scores, the sigmoid loss, what is trained), Sections 4, 6 and 8 the **evaluation practice** (baselines, leakage, held-out reading) and Sections 1–3 and 9 the **engineering** (environment, provenance, export)."
+                "**Who this notebook is for.** A learner who knows basic Python, has used Colab or Jupyter and has met image classification, and wants to see how a vision-language model classifies photographs with no labelled examples from this notebook, how to measure that honestly, and how to adapt it to a small labelled set without fooling themselves. No prior experience with SigLIP, CLIP or fine-tuning is assumed; each term is explained where it first matters and again in the **Glossary** at the end. A T4 GPU runtime finishes the fine-tuning in a few minutes; CPU works but is several times slower.\n\n**Input → Model → Output.**\n\n| | Zero-shot classification | Text-to-image retrieval | Bounded fine-tuning |\n|---|---|---|---|\n| Input | one photograph and candidate labels, each put into a prompt | a text query and a gallery of photographs | labelled photographs (216 training and 48 validation in the sample) |\n| Model | image tower and text tower; the cosine of the two embeddings × `logit_scale` + `logit_bias`, read through a sigmoid | the same two towers; cosine ranking | the last two vision-tower blocks, the post-layernorm and the attention-pool head, trained with the sigmoid loss; everything else frozen |\n| Output | one independent sigmoid score per label, ranked (never an abstention) | gallery photographs ranked by cosine | an 85 MB safetensors adapter, and held-out accuracy, macro F1 and text-to-image mAP |\n\n**How to use this notebook.** Choose a runtime (**Runtime → Change runtime type → T4 GPU** is faster; CPU works), then **Runtime → Run all**. Run all completes in one pass: Section 1 installs nothing into the notebook's own Python, so no restart is needed. Sections 1–3 are **infrastructure** — the isolated environment, the carried package and the model snapshot — and their cells are collapsed; you may run them without studying them. The learning path starts in Section 4. Form fields (`# @param`) are the only values meant to be edited, and the defaults reproduce the recorded run. Before each principal result the notebook asks you to **Predict**; after it come **What to notice** and a collapsible **Check your reasoning** with a worked answer from the recorded run (the Kaggle T4 run of blob `bd4b3cba`, 20 September 2026, whose metrics the Colab T4 run of blob `7e07ba5c` on 9 October 2026 repeated; neither re-run for this revision, and a CPU run can differ in the last digit). Section 10 is a **change-one-thing experiment**, off by default. **Troubleshooting**, a **Glossary** and a **Conclusion** template are at the end. Writing your predictions down is optional.\n\n**Roadmap:** 1–3 infrastructure → 4 photographs, validation and a leakage-free split → 5 the inference contract on three drawn shapes → 6 two baselines and the frozen model *(evaluation practice)* → 7 bounded fine-tuning → 8 held-out evaluation, per species → 9 the shapes again, export and reload → 10 change one thing (optional) → conclude. Sections 5 and 7 carry the **core concepts** (sigmoid scores, the sigmoid loss, what is trained), Sections 4, 6 and 8 the **evaluation practice** (baselines, leakage, held-out reading) and Sections 1–3 and 9 the **engineering** (environment, provenance, export)."
             )
         ]
     },
@@ -160,9 +165,12 @@ TEMPLATE = {
     ),
     "prerequisites": [
         "- **Learner:** basic Python and Colab or Jupyter familiarity; no prior experience with SigLIP, CLIP or fine-tuning. The notebook explains sigmoid scores, `logit_scale`/`logit_bias`, prompts, embeddings, accuracy, macro F1, average precision and text-to-image mAP, the attention-pool head and the adapter where they are first used; the Glossary repeats them.",
-        "- **Runtime:** a fresh supported **Linux x86_64** runtime (Google Colab, Kaggle or Linux Jupyter). Section 1 builds its own Python 3.12.12 environment from a hash-locked list of manylinux wheels, so the kernel's own Python version does not matter and nothing is installed into it; a Windows or macOS kernel is not supported. The default path runs on CPU (float32) and uses CUDA automatically when available. CPU is slow but adequate: the build record measured about 7 s to embed and score the 96 test photographs and 181 s for the six epochs of fine-tuning (216 photographs per epoch through the full vision tower, the last two blocks and the head training), including the per-epoch validation scoring, so the whole default path is about three and a half minutes of model time on the build workstation's CPU with the snapshot and photographs already cached (a 2-vCPU hosted runtime will be several times slower); a hosted T4 finishes it in a few minutes. The pinned `torch==2.14.0` install and the 813 MB checkpoint are the large downloads of the run; the photographs add about 39 MB.",
+        "- **Runtime:** a fresh supported **Linux x86_64** runtime (Google Colab, Kaggle or Linux Jupyter). Section 1 builds its own Python 3.12.12 environment from a hash-locked list of manylinux wheels, so the kernel's own Python version does not matter and nothing is installed into it; a Windows or macOS kernel is not supported. The default path runs on CPU (float32) and uses CUDA automatically when available. CPU is slow but adequate: the recorded runs measured about 7 s to embed and score the 96 test photographs and 181 s for the six epochs of fine-tuning (216 photographs per epoch through the full vision tower, the last two blocks and the head training), including the per-epoch validation scoring, so the whole default path is about three and a half minutes of model time on the build workstation's CPU with the snapshot and photographs already cached (a 2-vCPU hosted runtime will be several times slower); a hosted T4 finishes it in a few minutes. The pinned `torch==2.14.0` install and the 813 MB checkpoint are the large downloads of the run; the photographs add about 39 MB.",
         "- **Knowledge:** basic Python and PIL; what a sigmoid score and a cosine similarity are; what accuracy, macro F1 and average precision measure and why none is a human judgement; why a high score is not a correct label.",
         "- **Data contract:** records are `{id, image, label}` — a PIL image or a file decodable by Pillow with sides up to `MAX_IMAGE_SIDE` (4096) px and a label of at most 64 plain characters (the prompt is `DEFAULT_PROMPT_TEMPLATE` with the label, or its display name, filled in). Ids match `[A-Za-z0-9_.:-]{1,64}` and are unique; a dataset needs 8..20,000 records over 2..100 labels; splitting is stratified per label after pixel-digest de-duplication so no photograph lands in two splits. BYOD accepts one zip (or folder) of images plus a `labels.csv` in that shape; after the split every label needs a training, a validation and a test photograph and the training split eight, so the effective BYOD minimum is **12 photographs for two labels**, 15 for three and 4 per label from four labels (`min_byod_photographs(n_labels)` computes it). Every refusal names the `labels.csv` line, the file and the rule.",
+        "- **Recorded runs:** numbers quoted from \"the recorded runs\" or \"the recorded run\" come from the hosted Colab T4 run of "
+        "an earlier blob (`7e07ba5c`, commit `ec6b1bc`, 2026-10-09) and the Kaggle T4 run of blob `bd4b3cba` (2026-09-20), which printed "
+        "the same metrics; neither was re-run for this revision, and your printed output is the result.",
         "- **Validation is structural, not semantic:** every image is opened and decoded and every label checked, but nothing checks that a label is right — a mislabelled set is fine-tuned on without complaint.",
         "- **Privacy:** Do not upload confidential or restricted data to a hosted runtime unless you are authorized to process it there. The default path uploads nothing.",
         "- **External access (data):** besides the model snapshot, the default path fetches 360 JPEG/PNG files from `https://inaturalist-open-data.s3.amazonaws.com/photos/<id>/medium.<ext>` (about 39 MB in total), each pinned by byte size and SHA-256 in the carried `samples.py` and refused on any mismatch; every photograph's iNaturalist observation page and observer login are kept in its record. Each photograph carries the CC0 1.0 licence its observer chose (Gurari-style redistribution is not needed: nothing is committed to the repository).",
@@ -388,8 +396,8 @@ TEMPLATE = {
                 "mAP** — each prompt as a query ranking all 96 photographs, the average precision of its own species, averaged "
                 "over the six — the retrieval view of the same scores and the smoother of the three on a small set. A second "
                 "prompt set built from the scientific names is scored too, to show how much the number is the prompt's. Expect "
-                "the frozen model far above both baselines — it is a trained zero-shot classifier — and read the per-species "
-                "breakdown: the build record measured accuracy 0.76 / macro F1 0.76 / mAP 0.72 frozen, with the Chipping Sparrow "
+                "the frozen model far above both baselines — it is a pretrained image–text model that may have seen these species on the web — and read the per-species "
+                "breakdown: the recorded runs measured accuracy 0.76 / macro F1 0.76 / mAP 0.72 frozen, with the Chipping Sparrow "
                 "at 0.44 recall and the American Goldfinch at 0.94, and the White-throated Sparrow's recall of 0.81 resting on an average precision of 0.34 — it is over-predicted, not missed.\n\n"
                 "*Evaluation practice.* The cell reports a **verdict** — whether the frozen model is above both baselines — and "
                 "records it; it does not stop the notebook when the answer is no (on your own data that answer is a finding).\n\n"
@@ -444,8 +452,10 @@ TEMPLATE = {
                 "as a second view, and the 96-photograph test split is what the numbers are read from.\n\n"
                 "Watch the training loss fall from about 1.8 to below 0.1 within six epochs while the validation mAP peaks "
                 "early: 216 photographs are few, the last blocks memorise them, and the selector's job is to stop before that "
-                "hurts. The build record kept epoch 4 of six (validation mAP rose from 0.68 frozen to 0.90 there); the default is the "
-                "configuration that gained on the held-out split.\n\n"
+                "hurts. The recorded runs kept epoch 4 of six (validation mAP rose from 0.68 frozen to 0.90 there); the defaults (six epochs, "
+                "learning rate 5e-5, the last two blocks) were fixed while the notebook was built. The repository does not record which "
+                "split they were compared on or which other configurations were tried, so the test numbers in Section 8 may be "
+                "slightly optimistic; within this run, the test split is used only for the final scores.\n\n"
                 "*Core concept.* Every call to `pipe.adapt` starts from the **pinned base**: tensors an earlier call changed are "
                 "restored first, so epoch 0 is always the frozen model. Re-running this cell with a changed field is therefore a "
                 "fresh run, not continued training — but it replaces the default results that Sections 8 and 9 export. To compare "
@@ -493,7 +503,7 @@ TEMPLATE = {
                 "systems are put side by side on the three metrics, the per-species breakdown is repeated, and the "
                 "scientific-name prompt set is scored again (the vision tower was adapted, not the prompts, so a gain that "
                 "carries to a prompt set it never saw is the more general one). Read it in this order: **text-to-image mAP** "
-                "first (the metric the epoch was selected on — the build record measured 0.72 → 0.89), then accuracy and macro "
+                "first (the smoothest view of the three; the epoch was selected on validation accuracy, not mAP — the recorded runs measured 0.72 → 0.89), then accuracy and macro "
                 "F1 (0.76 → 0.84 and 0.76 → 0.85, eight photographs of 96), then the per-species recall, where the "
                 "Chipping Sparrow moved from 0.44 to 0.69 and the Song Sparrow from 0.75 to 0.94 while the White-throated Sparrow's recall fell from 0.81 to 0.75 as its average precision rose from 0.34 to 0.87 — it stopped being the default answer. The cell reports a "
                 "**verdict** — `improved`, `no gain` or `worse` on the held-out mAP — and records it in the evaluation report; a "
@@ -560,7 +570,7 @@ TEMPLATE = {
                 "## 9. Re-score the drawn shapes, export the adapter and reload it\n\n"
                 "The three shapes from Section 5 are classified again by the adapted model — drawings, a different image family "
                 "from the photographs it was tuned on, so this is a small look at what the adaptation did *outside* its corpus "
-                "(the build record's rankings are in `docs/release-verification.md`; a changed ranking here is a finding to record, not a "
+                "(the recorded runs' rankings are in `docs/release-verification.md`; a changed ranking here is a finding to record, not a "
                 "failure) — and reported with the per-grid `evaluation_report` (`sample-sanity`). Both score sets are written "
                 "as JSON.\n\n"
                 "`pipe.save_artifact` writes the trained tensors — the vision tower's last two blocks, post-layernorm and "
@@ -695,16 +705,17 @@ TEMPLATE = {
     ],
     "closing": (
         "## Interpretation and limits\n\n"
-        "The frozen model is already a usable zero-shot classifier on six bird species it was never told about — far above "
-        "the two non-neural baselines — and a bounded fine-tuning of the vision tower's last two blocks and head on 216 "
-        "photographs moves the retrieval view clearly (text-to-image mAP 0.72 → 0.89 in the build record) and the top-1 "
+        "Without any labelled photographs from this notebook, the frozen model already separates six bird species far above "
+        "the two non-neural baselines; its web-scale pretraining plausibly included iNaturalist photographs and species names "
+        "(inferred, not verified), so this shows prompt-based classification works here, not that it generalises to unseen species — and a bounded fine-tuning of the vision tower's last two blocks and head on 216 "
+        "photographs moves the retrieval view clearly (text-to-image mAP 0.72 → 0.89 in the recorded runs) and the top-1 "
         "accuracy by eight photographs (0.76 → 0.84), with the gain concentrated on the species the prompt separated worst, "
         "and an 85 MB adapter that reloads to identical embeddings. That is the claim: the adaptation contract works end to "
         "end on a real labelled photograph set, and the numbers it produces are read on three metrics, per species, on two "
         "prompt sets, against two non-neural baselines and the frozen model rather than in isolation.\n\n"
         "The test split is 96 photographs from one seeded draw of one sample, the validation split that picks the epoch is 48, "
         "the metrics are three reference-based scores (own numpy implementations; none a human judgement), accuracy moves in "
-        "steps of one photograph, and the build record's own epoch history shows the estimate's fragility: validation accuracy on the "
+        "steps of one photograph, and the recorded runs' own epoch history shows the estimate's fragility: validation accuracy on the "
         "48 photographs moved between 0.71 and 0.85 from one epoch to the next. So a gain here says the "
         "contract works, not that the adapted model is better on your photographs, that its scores are calibrated, or that a "
         "sigmoid score is a probability of being right — it still returns a best label for every image, and it can be wrong "
@@ -732,6 +743,7 @@ TEMPLATE = {
         "## Troubleshooting\n\n"
         "- **Section 1 stops with \"This notebook needs a Linux x86_64 runtime\"** — you are on Windows, macOS or an ARM "
         "machine. Use Google Colab, Kaggle or a Linux x86_64 Jupyter server.\n"
+        "- **Where the environment lives** — Section 1 builds it in a folder named `dimer_isolated_env_<lock digest>` in the working directory. Set the environment variable `DIMER_ISOLATED_ENV` before Section 1 to build it somewhere else.\n"
         "- **The uv wheel fails its size/SHA-256 check, or a download in Section 1 times out** — run Section 1 again; a "
         "complete environment is reused, an incomplete one is finished. If it repeats, the network is blocking or altering "
         "`files.pythonhosted.org` or `pypi.org`.\n"
@@ -802,14 +814,12 @@ TEMPLATE = {
         "- One reason not to trust this number on my own photographs yet: ___ (for example the size of the test split, "
         "observer overlap, or the prompts).\n\n"
         "## References\n\n"
-        "- Repository README: https://github.com/kurtvalcorza/siglip-v1-zero-shot-pipeline/blob/main/README.md\n"
-        "- Repository model card: https://github.com/kurtvalcorza/siglip-v1-zero-shot-pipeline/blob/main/MODEL_CARD.md\n"
-        "- Sample dataset card (synthetic shapes): https://github.com/kurtvalcorza/siglip-v1-zero-shot-pipeline/blob/main/examples/sample-data/DATASET_CARD.md\n"
-        "- Upstream model: https://huggingface.co/{MODEL_ID}\n"
-        "- Upstream library: https://github.com/huggingface/transformers\n"
-        "- Sigmoid Loss for Language Image Pre-Training (Zhai, Mustafa, Kolesnikov and Beyer, ICCV 2023): https://arxiv.org/abs/2303.15343\n"
-        "- The SigLIP 2 successor row in this fleet, sharing the code shape: https://github.com/kurtvalcorza/siglip2-vision-language-pipeline\n"
-        "- iNaturalist open data (CC0 photographs, each observer's own licence): https://www.inaturalist.org/pages/developers — bucket https://inaturalist-open-data.s3.amazonaws.com/\n"
-        "- DIMER Notebook Specification 2.2 and Model Card Specification 1.1 (fleet specs in the ml-worker repository)"
+        "[1] X. Zhai, B. Mustafa, A. Kolesnikov, and L. Beyer, \"Sigmoid loss for language image pre-training,\" in *Proc. IEEE/CVF Int. Conf. Comput. Vis. (ICCV)*, 2023. [Online]. Available: https://arxiv.org/abs/2303.15343\n\n"
+        "[2] iNaturalist, \"iNaturalist open data\" (CC0 photographs, each observer's own licence). [Online]. Available: https://www.inaturalist.org/pages/developers; bucket: https://inaturalist-open-data.s3.amazonaws.com/\n\n"
+        "[3] Hugging Face, \"transformers,\" GitHub repository. [Online]. Available: https://github.com/huggingface/transformers\n\n"
+        "[4] Upstream model checkpoint. [Online]. Available: https://huggingface.co/{MODEL_ID}\n\n"
+        "[5] K. Valcorza, \"siglip-v1-zero-shot-pipeline,\" README, sample dataset card and model card. [Online]. Available: https://github.com/kurtvalcorza/siglip-v1-zero-shot-pipeline/blob/main/README.md, https://github.com/kurtvalcorza/siglip-v1-zero-shot-pipeline/blob/main/examples/sample-data/DATASET_CARD.md; model card: https://github.com/kurtvalcorza/siglip-v1-zero-shot-pipeline/blob/main/MODEL_CARD.md\n\n"
+        "[6] K. Valcorza, \"siglip2-vision-language-pipeline,\" the SigLIP 2 successor row in this fleet, sharing the code shape. [Online]. Available: https://github.com/kurtvalcorza/siglip2-vision-language-pipeline\n\n"
+        "[7] DIMER Notebook Specification 2.5 and Model Card Specification 1.1, fleet specs in the ml-worker repository."
     ),
 }

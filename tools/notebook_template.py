@@ -194,7 +194,9 @@ TEMPLATE = {
                 "folder holding `labels.csv` and the images, as a path in this runtime — this works on Colab, Kaggle and Jupyter) or "
                 "leave `BYOD_PATH` empty to upload exactly one zip through the Colab dialog; then choose **Run after** from this "
                 "cell. The effective minimum is 12 photographs for two labels (see the Prerequisites); the cell reports how many "
-                "duplicate images the split dropped and warns when a label has fewer than five held-out test photographs.\n\n"
+                "duplicate images the split dropped and warns when a label has fewer than five held-out test photographs. A refused input stops the cell with one line, `Refused: <file>: <reason and fix>`, "
+                "and removes the earlier run's results from the session and this notebook's exports from `outputs/`, so nothing from "
+                "that run can pass as a result of your photographs.\n\n"
                 "**Predict before running:** the split is made per photograph, and each of the 360 photographs comes from a "
                 "different iNaturalist observation. Will any *observer* (photographer) contribute photographs to more than one "
                 "split — and if so, is that leakage?"
@@ -211,46 +213,93 @@ TEMPLATE = {
                 "BYOD_PATH = ''  # @param {{type:\"string\"}}\n"
                 "SPLIT_SEED = 42  # @param {{type:\"integer\"}}\n\n"
                 "os.makedirs('outputs', exist_ok=True)\n"
-                "if USE_BYOD:\n"
-                "    if BYOD_PATH.strip():\n"
-                "        byod_zip = Path(BYOD_PATH.strip()).expanduser()\n"
-                "        if not byod_zip.exists():\n"
-                "            raise FileNotFoundError(f'BYOD_PATH {{BYOD_PATH!r}} does not exist (relative paths start at {{Path.cwd()}}): give a .zip or a folder holding labels.csv and the image files.')\n"
-                "        file_name = byod_zip.name\n"
-                "    else:\n"
-                "        try:\n"
-                "            from google.colab import files\n"
-                "        except ImportError:\n"
-                "            raise RuntimeError('USE_BYOD is True but BYOD_PATH is empty, and the upload dialog exists only in Google Colab: on Kaggle or Jupyter put the zip (or folder) in the runtime and set BYOD_PATH to its path.') from None\n"
-                "        uploaded = files.upload() or {{}}\n"
-                "        if len(uploaded) != 1:\n"
-                "            raise ValueError(f'Upload exactly one .zip file (received {{len(uploaded)}}; a cancelled dialog sends none): run this cell again.')\n"
-                "        file_name, payload = next(iter(uploaded.items()))\n"
-                "        if not file_name.lower().endswith('.zip'):\n"
-                "            raise ValueError(f'{{file_name}}: upload one .zip holding labels.csv and the image files.')\n"
-                "        byod_zip = Path('work') / 'byod.zip'\n"
-                "        byod_zip.parent.mkdir(parents=True, exist_ok=True)\n"
-                "        byod_zip.write_bytes(payload)\n"
-                "    records = load_byod_dataset(byod_zip)\n"
-                "    byod_minimum = min_byod_photographs(len({{r['label'] for r in records}})) if len({{r['label'] for r in records}}) >= MIN_CLASSES else None\n"
-                "    splits = split_dataset(records, seed=SPLIT_SEED)\n"
+                'import zipfile\n\n\n'
+                'class BYODRefusal(ValueError):\n'
+                '    """A refused BYOD input: ``BYODRefusal(file_name, reason_and_fix)``."""\n\n'
+                '    dimer_refusal = True\n\n'
+                '    def __init__(self, file_name, reason):\n'
+                '        super().__init__(f"{{file_name}}: {{reason}}")\n'
+                '        self.file_name = file_name\n'
+                '        self.reason = reason\n\n'
+                '    def _render_traceback_(self):\n'
+                '        return [f"Refused: {{self}}"]\n\n\n'
+                '# The results an earlier run of this cell and the sections after it left in this session. A refused input removes them,\n'
+                "# and this notebook's exports in outputs/, so none of them can pass as a result of the refused input (DAT20).\n"
+                'RUN_RESULT_NAMES = (\n'
+                "    'records', 'byod_minimum', 'splits', 'data_source', 'display_names', 'raw_rows', 'thin', 'corpus_files', 'corpus', 'dataset_manifests',\n"
+                "    'disjoint', 'train_records', 'val_records', 'test_records', 'classes', 'manifest', 'example', 'probes', 'probe', 'specs', 'shape_images',\n"
+                "    'foreground', 'shape', 'path', 'digest', 'shape_labels', 'candidate_labels', 'shape_sha256', 'input_manifest', 'classifications', 'retrievals',\n"
+                "    'classification_rows', 't0', 'image_path', 'expected', 'scores', 'query', 'shape_embeddings', 'checks', 'result', 'targets', 'frozen_scene',\n"
+                "    'baseline_majority', 'baseline_neighbour', 'frozen_test', 'frozen_fields', 'scientific_names', 'frozen_scientific', 'frozen_beats',\n"
+                "    'frozen_verdict', 'settings', 'adapt_result', 'adapt_seconds', 'adapted_test', 'adapted_val', 'adapted_fields', 'adapted_scientific',\n"
+                "    'comparison', 'delta_map', 'adaptation_verdict', 'key', 'row', 'evaluation_report_payload', 'f', 'adapted_classifications', 'adapted_retrievals',\n"
+                "    'adapted_scene', 'before', 'after', 'artifact_dir', 'artifact_manifest', 'reloaded', 'parity', 'result_payload', 'canonical_files', 'canonical',\n"
+                "    'experiment_dir', 'experiment_pipe', 'experiment_result', 'experiment_test', 'experiment_dir_adapter', 'side_by_side', 'unchanged',\n"
+                ')\n\n\n'
+                'def refuse_byod(file_name, reason):\n'
+                '    """Remove the earlier run\'s results, then stop the cell with one Refused: line naming the file and the fix."""\n'
+                '    import shutil\n\n'
+                '    for name in RUN_RESULT_NAMES:\n'
+                '        globals().pop(name, None)\n'
+                "    for path in Path('outputs').glob('siglip_v1_zero_shot_*'):\n"
+                '        shutil.rmtree(path) if path.is_dir() else path.unlink()\n'
+                "    reason = str(reason).removeprefix(f'{{file_name}}: ').rstrip('. ')\n"
+                "    if 'again' not in reason:\n"
+                "        reason += '; fix the input and run this cell again'\n"
+                "    raise BYODRefusal(file_name, reason + ' (the earlier results of this session were removed).') from None\n\n\n"
+                'if USE_BYOD:\n'
+                '    # DAT20: every problem with your input (path, upload, archive, labels.csv, photographs, split) stops here as one Refused: line.\n'
+                "    file_name = (Path(BYOD_PATH.strip()).name or BYOD_PATH.strip()) if BYOD_PATH.strip() else '(no file)'\n"
+                '    try:\n'
+                '        if BYOD_PATH.strip():\n'
+                '            byod_zip = Path(BYOD_PATH.strip()).expanduser()\n'
+                '            if not byod_zip.exists():\n'
+                "                raise BYODRefusal(file_name, f'BYOD_PATH {{BYOD_PATH!r}} does not exist (relative paths start at {{Path.cwd()}}): give a .zip or a folder holding labels.csv and the image files.')\n"
+                "            if byod_zip.is_dir() and not (byod_zip / 'labels.csv').is_file():\n"
+                "                raise BYODRefusal(file_name, 'the folder has no labels.csv: add one with the columns id, file, label next to the image files.')\n"
+                '        else:\n'
+                '            try:\n'
+                '                from google.colab import files\n'
+                '            except ImportError:\n'
+                "                raise BYODRefusal(file_name, 'USE_BYOD is True but BYOD_PATH is empty, and the upload dialog exists only in Google Colab: on Kaggle or Jupyter put the zip (or folder) in the runtime and set BYOD_PATH to its path.') from None\n"
+                '            uploaded = files.upload() or {{}}\n'
+                '            if len(uploaded) != 1:\n'
+                "                raise BYODRefusal(file_name, f'Upload exactly one .zip file (received {{len(uploaded)}}; a cancelled dialog sends none): run this cell again.')\n"
+                '            file_name, payload = next(iter(uploaded.items()))\n'
+                "            if not file_name.lower().endswith('.zip'):\n"
+                "                raise BYODRefusal(file_name, 'upload one .zip holding labels.csv and the image files.')\n"
+                "            byod_zip = Path('work') / 'byod.zip'\n"
+                '            byod_zip.parent.mkdir(parents=True, exist_ok=True)\n'
+                '            byod_zip.write_bytes(payload)\n'
+                '        records = load_byod_dataset(byod_zip)\n'
+                "        byod_minimum = min_byod_photographs(len({{r['label'] for r in records}})) if len({{r['label'] for r in records}}) >= MIN_CLASSES else None\n"
+                '        splits = split_dataset(records, seed=SPLIT_SEED)\n'
+                '    except BYODRefusal as exc:\n'
+                '        refuse_byod(exc.file_name, exc.reason)\n'
+                '    except (TypeError, ValueError, KeyError, OSError, zipfile.BadZipFile) as exc:\n'
+                '        refuse_byod(file_name, exc)\n'
                 "    data_source = 'BYOD (' + file_name + ')'\n"
-                "    display_names = {{}}\n"
+                '    display_names = {{}}\n'
                 "    raw_rows = {{'byod': len(records), 'duplicate_images_dropped': len(records) - sum(len(part) for part in splits.values()), 'effective_minimum': byod_minimum}}\n"
                 "    thin = {{label: n for label, n in sorted(Counter(r['label'] for r in splits['test']).items()) if n < 5}}\n"
-                "    if thin:\n"
+                '    if thin:\n'
                 "        print({{'caution': 'fewer than five held-out test photographs for some labels: their scores move in steps of 1/n and carry no dispersion estimate; add photographs before reading per-label numbers', 'test_photographs': thin}})\n"
-                "else:\n"
+                'else:\n'
                 "    corpus_files = fetch_corpus(cache_dir='weights/inat-birds')\n"
-                "    corpus = read_corpus(corpus_files)\n"
-                "    splits = build_sample_dataset(corpus, seed=SPLIT_SEED)\n"
+                '    corpus = read_corpus(corpus_files)\n'
+                '    splits = build_sample_dataset(corpus, seed=SPLIT_SEED)\n'
                 "    data_source = f'{{CORPUS_NAME}}: {{CORPUS_RELEASE}} ({{CORPUS_LICENSE}})'\n"
-                "    display_names = {{key: common for key, (_scientific, common) in SPECIES.items()}}\n"
+                '    display_names = {{key: common for key, (_scientific, common) in SPECIES.items()}}\n'
                 "    raw_rows = {{'photographs': len(corpus), 'bytes': sum(len(v) for v in corpus_files.values()), 'observers': len({{r['observer'] for r in corpus}})}}\n"
-                "# The training split must hold MIN_RECORDS; validation and test only need a photograph per label (split_dataset checks that).\n"
-                "dataset_manifests = {{name: validate_dataset(part, min_records=MIN_RECORDS if name == 'train' else 1) for name, part in splits.items()}}\n"
-                "splits = {{name: manifest['records'] for name, manifest in dataset_manifests.items()}}\n"
-                "disjoint = check_split_disjoint(splits)\n"
+                '# The training split must hold MIN_RECORDS; validation and test only need a photograph per label (split_dataset checks that).\n'
+                'try:\n'
+                "    dataset_manifests = {{name: validate_dataset(part, min_records=MIN_RECORDS if name == 'train' else 1) for name, part in splits.items()}}\n"
+                "    splits = {{name: manifest['records'] for name, manifest in dataset_manifests.items()}}\n"
+                '    disjoint = check_split_disjoint(splits)\n'
+                'except (TypeError, ValueError, KeyError) as exc:\n'
+                '    if not USE_BYOD:\n'
+                '        raise  # the pinned sample failing its contract is a genuine error, not a refusal\n'
+                '    refuse_byod(file_name, exc)\n'
                 "train_records, val_records, test_records = splits['train'], splits['validation'], splits['test']\n"
                 "classes = class_names(train_records)\n"
                 "write_dataset_csv(train_records, 'outputs/{stem}_train.csv')\n"
